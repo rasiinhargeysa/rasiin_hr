@@ -1,0 +1,64 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-06-14 18:06:42.499252",
+ "default_view": "List",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "shift_type",
+  "time_in",
+  "time_out",
+  "two_date_shift"
+ ],
+ "fields": [
+  {
+   "fieldname": "shift_type",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Shift Type",
+   "options": "Shift Type",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "shift_type.start_time",
+   "fieldname": "time_in",
+   "fieldtype": "Time",
+   "in_list_view": 1,
+   "label": "Time In",
+   "read_only": 1,
+   "reqd": 1
+  },
+  {
+   "fetch_from": "shift_type.end_time",
+   "fieldname": "time_out",
+   "fieldtype": "Time",
+   "in_list_view": 1,
+   "label": "Time Out",
+   "read_only": 1,
+   "reqd": 1
+  },
+  {
+   "default": "0",
+   "fetch_from": "shift_type.two_date_shift",
+   "fieldname": "two_date_shift",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Two Date Shift",
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-06-15 08:05:24.020972",
+ "modified_by": "Administrator",
+ "module": "Rasiin Hr",
+ "name": "Shift Type Slot",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
