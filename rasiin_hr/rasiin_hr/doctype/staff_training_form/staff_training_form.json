@@ -1,0 +1,125 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "STAF-TRAINING-.##### ",
+ "creation": "2026-07-19 20:32:27.913293",
+ "default_view": "List",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "training_title",
+  "department",
+  "trainer_facilitator",
+  "column_break_560ks",
+  "date",
+  "venue",
+  "co_trainer",
+  "section_break_gjj6p",
+  "brief_training_content",
+  "section_break_bhr6m",
+  "staff_training_form_item"
+ ],
+ "fields": [
+  {
+   "fieldname": "training_title",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Training Title",
+   "reqd": 1
+  },
+  {
+   "fieldname": "department",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Department",
+   "options": "Department",
+   "reqd": 1
+  },
+  {
+   "fieldname": "trainer_facilitator",
+   "fieldtype": "Data",
+   "label": "Trainer / Facilitator",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_560ks",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "Today",
+   "fieldname": "date",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "venue",
+   "fieldtype": "Data",
+   "label": "Venue"
+  },
+  {
+   "fieldname": "co_trainer",
+   "fieldtype": "Data",
+   "label": "Co - Trainer"
+  },
+  {
+   "fieldname": "section_break_gjj6p",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "staff_training_form_item",
+   "fieldtype": "Table",
+   "label": "STAFF TRAINING FORM EMPLOYEES",
+   "options": "STAFF TRAINING FORM ITEM"
+  },
+  {
+   "fieldname": "brief_training_content",
+   "fieldtype": "Text",
+   "label": "Brief Training Content"
+  },
+  {
+   "fieldname": "section_break_bhr6m",
+   "fieldtype": "Section Break"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-07-22 09:48:35.129537",
+ "modified_by": "Administrator",
+ "module": "Rasiin Hr",
+ "name": "STAFF TRAINING FORM",
+ "naming_rule": "Expression (old style)",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "All",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

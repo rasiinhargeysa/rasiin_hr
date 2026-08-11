@@ -142,7 +142,23 @@ def get_employee_slots(employee):
 def build_slot_windows(slots):
 	"""
 	Given sorted slots, compute a matching window (start, end) for each slot.
-	For overnight slots, day_end is extended beyond 23:59:59.
+
+	The boundary between two consecutive slots is the earliest moment a
+	check-in for the LATER slot is accepted:
+
+	    boundary = next_slot.time_in - next_slot.begin_check_in_before
+
+	Everything before that boundary belongs to the earlier slot, so someone
+	who stays well past the end of their morning shift still has that punch
+	recorded as the morning check-out rather than being misread as an early
+	afternoon check-in.
+
+	This replaces the old midpoint rule, which split the gap in half and so
+	depended on how long the break happened to be — a 13:29 departure landed
+	in the morning slot while a 14:04 departure flipped to the afternoon one.
+
+	The boundary is never allowed to fall before the earlier slot's own
+	time_out. For overnight slots, day_end is extended beyond 23:59:59.
 	"""
 	if not slots:
 		return []
@@ -151,19 +167,29 @@ def build_slot_windows(slots):
 	max_time_out = max(s["time_out"] for s in slots)
 	day_end = max(timedelta(hours=23, minutes=59, seconds=59), max_time_out)
 
+	# boundaries[i] separates slot i from slot i+1
+	boundaries = []
+	for i in range(len(slots) - 1):
+		nxt = slots[i + 1]
+		boundary = nxt["time_in"] - nxt["begin_check_in_before"]
+
+		# a long check-in grace must not reach back past the previous
+		# slot's own end time
+		prev_out = slots[i]["time_out"]
+		if boundary < prev_out:
+			boundary = prev_out
+
+		boundaries.append(boundary)
+
 	windows = []
 	for i, slot in enumerate(slots):
-		if i == 0:
-			win_start = day_start
-		else:
-			prev_out = slots[i - 1]["time_out"]
-			win_start = prev_out + (slot["time_in"] - prev_out) / 2
-
+		win_start = day_start if i == 0 else boundaries[i - 1]
 		if i == len(slots) - 1:
 			win_end = day_end
 		else:
-			next_in = slots[i + 1]["time_in"]
-			win_end = slot["time_out"] + (next_in - slot["time_out"]) / 2
+			# keep the two windows disjoint: a punch exactly on the boundary
+			# is a check-in for the later slot
+			win_end = boundaries[i] - timedelta(seconds=1)
 
 		windows.append((win_start, win_end))
 
@@ -176,6 +202,10 @@ def assign_punches_to_slots(punches, slots, windows):
 	         Next-day punches are already offset by +24h.
 	Returns a list aligned with slots:
 	[{"check_in": timedelta|None, "check_out": timedelta|None}, ...]
+
+	A slot never ends up with check_out <= check_in: if the only punches
+	that land in a slot are effectively the same moment (a double swipe),
+	the punch is kept as the check-in and check_out is left blank.
 	"""
 	result = [{"check_in": None, "check_out": None} for _ in slots]
 
@@ -195,23 +225,51 @@ def assign_punches_to_slots(punches, slots, windows):
 				elif entry["check_in"] is not None and entry["check_out"] is None:
 					if punch > entry["check_in"]:
 						entry["check_out"] = punch
-					else:
-						if entry["check_in"] > punch:
-							entry["check_out"] = entry["check_in"]
-							entry["check_in"] = punch
+					elif punch < entry["check_in"]:
+						entry["check_out"] = entry["check_in"]
+						entry["check_in"] = punch
+					# equal -> duplicate swipe, ignore
 				elif entry["check_out"] is not None and entry["check_in"] is None:
 					if punch < entry["check_out"]:
 						entry["check_in"] = punch
-					else:
+					elif punch > entry["check_out"]:
 						entry["check_in"] = entry["check_out"]
 						entry["check_out"] = punch
+					# equal -> duplicate swipe, ignore
 				else:
 					all_times = [entry["check_in"], entry["check_out"], punch]
 					entry["check_in"] = min(all_times)
 					entry["check_out"] = max(all_times)
 				break
 
+	# Final guard: an In/Out pair at the same time is a double swipe,
+	# not a zero-length work period. Keep it as In only.
+	for entry in result:
+		if entry["check_in"] is not None and entry["check_out"] is not None:
+			if entry["check_out"] <= entry["check_in"]:
+				entry["check_out"] = None
+
 	return result
+
+
+# How close two swipes have to be before we treat them as the same punch.
+# Raise this (e.g. minutes=5) if your readers commonly register repeats.
+PUNCH_DEDUPE_WINDOW = timedelta(minutes=1)
+
+
+def dedupe_punches(punches, window=PUNCH_DEDUPE_WINDOW):
+	"""
+	Collapse repeated swipes at (almost) the same moment into a single punch.
+
+	Without this, two Employee Checkin rows a few seconds apart become an
+	In and an Out that both format to the same HH:MM.
+	"""
+	kept = []
+	for p in sorted(p for p in punches if p is not None):
+		if kept and (p - kept[-1]) <= window:
+			continue
+		kept.append(p)
+	return kept
 
 
 def format_td(td):
@@ -311,7 +369,8 @@ def get_personal_attendance_for_date(em_id, employee_name, att_date, worked_on_h
 		]
 		punches = punches + next_punches
 
-	punches.sort()
+	# Sorts and drops repeat swipes registered within PUNCH_DEDUPE_WINDOW.
+	punches = dedupe_punches(punches)
 
 	# Expected hours for this date = sum of assigned slot durations,
 	# zero on holiday / leave days (no work expected).
@@ -374,12 +433,17 @@ def get_personal_attendance_for_date(em_id, employee_name, att_date, worked_on_h
 			first_in = punches[0]
 			last_out = punches[-1] if len(punches) > 1 else None
 
+			# A single punch (or an out that is not strictly later than the in)
+			# is recorded as an In only, never as In == Out.
+			if last_out is not None and last_out <= first_in:
+				last_out = None
+
 			row["am_in"] = format_td(first_in)
 			row["am_out"] = format_td(last_out)
 			row["_first_in"] = first_in
 
 			filled_slots = 1
-			if last_out is not None and last_out > first_in:
+			if last_out is not None:
 				total_seconds_worked = (last_out - first_in).total_seconds()
 				complete_slots = 1
 	else:
@@ -426,6 +490,68 @@ def get_personal_attendance_for_date(em_id, employee_name, att_date, worked_on_h
 		row["status"] = "Half Day"
 
 	return row
+
+
+# ---------------------------------------------------------------------------
+# Diagnostics
+# ---------------------------------------------------------------------------
+
+@frappe.whitelist()
+def debug_slot_windows(employee, day):
+	"""
+	Shows each slot's matching window for one employee on one date, plus
+	that day's punches and which slot each landed in.
+
+	  /api/method/<app>.<...>.debug_slot_windows?employee=EMP-00026&day=2026-08-02
+
+	The window boundaries are what decide whether a late departure counts as
+	this slot's check-out or the next slot's check-in.
+	"""
+	att_date = getdate(day)
+	slots = get_employee_slots(employee)
+	windows = build_slot_windows(slots)
+
+	checkins = frappe.db.sql(
+		"""
+		select time from `tabEmployee Checkin`
+		where employee = %s and date(time) = %s
+		order by time
+		""",
+		(employee, att_date),
+		as_dict=1,
+	)
+	punches = dedupe_punches([_to_timedelta(c["time"]) for c in checkins])
+
+	punch_report = []
+	for p in punches:
+		landed = None
+		for i, (ws_, we_) in enumerate(windows):
+			if ws_ <= p <= we_:
+				landed = i
+				break
+		punch_report.append({"time": format_td(p), "slot": landed})
+
+	assigned = assign_punches_to_slots(punches, slots, windows)
+
+	return {
+		"slots": [
+			{
+				"shift_type": s["shift_type"],
+				"time_in": format_td(s["time_in"]),
+				"time_out": format_td(s["time_out"]),
+				"begin_check_in_before_mins": int(s["begin_check_in_before"].total_seconds() // 60),
+				"allow_check_out_after_mins": int(s["allow_check_out_after"].total_seconds() // 60),
+				"window_start": format_td(windows[i][0]),
+				"window_end": format_td(windows[i][1]),
+			}
+			for i, s in enumerate(slots)
+		],
+		"punches": punch_report,
+		"result": [
+			{"in": format_td(e["check_in"]), "out": format_td(e["check_out"])}
+			for e in assigned
+		],
+	}
 
 
 # ---------------------------------------------------------------------------
@@ -640,7 +766,7 @@ def get_columns():
 
 
 # ---------------------------------------------------------------------------
-# NEW: Monthly Calendar Excel Export
+# Monthly Calendar Excel Export
 # (one row per calendar day, matching the "Monthly Attendance" sheet)
 # ---------------------------------------------------------------------------
 
@@ -657,9 +783,11 @@ LEAVE_TYPE_CODE_MAP = {
 
 def _late_in_minutes(row):
 	"""
-	Minutes the first check-in was after the shift's configured start time
-	(net of the shift's check-in grace period). 0 if on time/early or if
-	there is no first check-in / no configured shift.
+	Minutes the first check-in was after the shift's configured start time.
+	0 if on time/early or if there is no first check-in / no configured shift.
+
+	Kept for any caller that still wants a plain minute count; the calendar
+	itself now uses _late_in_seconds so it can render "1h 16m".
 	"""
 	slots = row.get("_slots") or []
 	first_in = row.get("_first_in")
@@ -667,10 +795,26 @@ def _late_in_minutes(row):
 		return 0
 
 	shift_start = slots[0]["time_in"]
-	grace = slots[0]["begin_check_in_before"]
-	late = (first_in - shift_start) - grace
+	late = (first_in - shift_start)
 	late_minutes = late.total_seconds() / 60
 	return round(late_minutes) if late_minutes > 0 else 0
+
+
+def _late_in_seconds(row):
+	"""
+	Seconds the first check-in was after the shift's configured start time.
+	0 if on time/early or if there is no first check-in / no configured shift.
+
+	Seconds (rather than minutes) so the value can be handed straight to
+	format_hours() and totalled without losing precision.
+	"""
+	slots = row.get("_slots") or []
+	first_in = row.get("_first_in")
+	if not slots or first_in is None:
+		return 0
+
+	late = (first_in - slots[0]["time_in"]).total_seconds()
+	return int(late) if late > 0 else 0
 
 
 def _less_hours(mandatory_hours, actual_hours):
@@ -681,6 +825,55 @@ def _less_hours(mandatory_hours, actual_hours):
 def _overtime_hours(mandatory_hours, actual_hours):
 	diff = round((actual_hours or 0) - (mandatory_hours or 0), 2)
 	return diff if diff > 0 else 0
+
+
+def calendar_totals(rows):
+	"""
+	Column totals plus a day-count breakdown for the monthly calendar.
+
+	`worked_days` counts any day with at least one punch recorded, so a day
+	with a missing check-out still counts as worked — it shows up in
+	`less_hours` rather than being dropped from the day count.
+
+	Late-in is accumulated from the raw `_late_seconds` on each row and
+	formatted once at the end, since the displayed `late_in_minutes` is a
+	string like "1h 16m" and cannot be summed.
+	"""
+	totals = {
+		"mandatory_hours": 0.0,
+		"actual_hours": 0.0,
+		"late_in_minutes": 0,
+		"less_hours": 0.0,
+		"overtime": 0.0,
+		"worked_days": 0,
+		"absent_days": 0,
+		"leave_days": 0,
+		"holiday_days": 0,
+	}
+
+	for r in rows:
+		totals["mandatory_hours"] += r.get("mandatory_hours") or 0
+		totals["actual_hours"] += r.get("actual_hours") or 0
+		totals["late_in_minutes"] += r.get("_late_seconds") or 0
+		totals["less_hours"] += r.get("less_hours") or 0
+		totals["overtime"] += r.get("overtime") or 0
+
+		day_type = r.get("day_type")
+		if day_type == "absent":
+			totals["absent_days"] += 1
+		elif day_type == "leave":
+			totals["leave_days"] += 1
+		elif day_type == "holiday":
+			totals["holiday_days"] += 1
+		elif r.get("am_in") or r.get("am_out") or r.get("pm_in") or r.get("pm_out"):
+			totals["worked_days"] += 1
+
+	for key in ("mandatory_hours", "actual_hours", "less_hours", "overtime"):
+		totals[key] = round(totals[key], 2)
+
+	totals["late_in_minutes"] = format_hours(totals["late_in_minutes"])
+
+	return totals
 
 
 def get_calendar_rows(employee, from_date, to_date):
@@ -697,6 +890,7 @@ def get_calendar_rows(employee, from_date, to_date):
 
 		mandatory_hours = day_row.get("expected_hours") or 0
 		actual_hours = day_row.get("worked_hours") or 0
+		late_seconds = _late_in_seconds(day_row)
 
 		code = ""
 		day_type = ""  # "" | "absent" | "leave" | "holiday" -- for downstream styling
@@ -717,8 +911,11 @@ def get_calendar_rows(employee, from_date, to_date):
 			"pm_in": day_row.get("pm_in") or "",
 			"pm_out": day_row.get("pm_out") or "",
 			"mandatory_hours": mandatory_hours,
-			"actual_hours": min(actual_hours, mandatory_hours) if mandatory_hours else actual_hours,
-			"late_in_minutes": _late_in_minutes(day_row),
+			"actual_hours": actual_hours,
+			# displayed as a duration, e.g. "1h 16m"
+			"late_in_minutes": format_hours(late_seconds),
+			# raw value kept so calendar_totals() can sum it
+			"_late_seconds": late_seconds,
 			"less_hours": _less_hours(mandatory_hours, actual_hours),
 			"overtime": _overtime_hours(mandatory_hours, actual_hours),
 			"code": code,
@@ -743,19 +940,24 @@ def get_personal_attendance_calendar(employee, from_date, to_date):
 	      {"date": "2026-07-01", "date_label": "1-Jul",
 	       "am_in": "08:40", "am_out": "11:20",
 	       "pm_in": "15:50", "pm_out": "20:45", "mandatory_hours": 8.0,
-	       "actual_hours": 8.0, "late_in_minutes": 40, "less_hours": 0,
+	       "actual_hours": 8.0, "late_in_minutes": "40m", "less_hours": 0,
 	       "overtime": 1.0, "code": ""},
 	      ...
-	    ]
+	    ],
+	    "totals": {"mandatory_hours": 176.0, "actual_hours": 168.5,
+	               "late_in_minutes": "1h 3m", "less_hours": 7.5, "overtime": 12.3,
+	               "worked_days": 22, "absent_days": 1,
+	               "leave_days": 0, "holiday_days": 5}
 	  }
+
+	Note: `late_in_minutes` is a formatted duration string, not a number.
 	"""
 	employee_doc = frappe.get_cached_doc("Employee", employee)
 	rows, employee_name = get_calendar_rows(employee, from_date, to_date)
+	totals = calendar_totals(rows)
 
-	# FIX: the front-end table renders `row.date_label` (e.g. "1-Jul"), but
-	# this used to only ever set `row.date` (an ISO string). That mismatch
-	# is why the Date column was showing blank. We now compute date_label
-	# from the raw date *before* overwriting it with the isoformat string.
+	# The front-end table renders `row.date_label` (e.g. "1-Jul"), so compute
+	# it from the raw date *before* overwriting `date` with the ISO string.
 	for row in rows:
 		date_val = row["date"]
 		row["date_label"] = date_val.strftime("%-d-%b") if hasattr(date_val, "strftime") else str(date_val)
@@ -767,6 +969,7 @@ def get_personal_attendance_calendar(employee, from_date, to_date):
 		"designation": employee_doc.designation,
 		"department": employee_doc.department,
 		"rows": rows,
+		"totals": totals,
 	}
 
 
@@ -788,6 +991,7 @@ def download_monthly_calendar(employee, from_date, to_date):
 	company_display = frappe.db.get_value("Company", company, "company_name") or company or ""
 
 	rows, employee_name = get_calendar_rows(employee, from_date, to_date)
+	totals = calendar_totals(rows)
 
 	wb = Workbook()
 	ws = wb.active
@@ -795,10 +999,12 @@ def download_monthly_calendar(employee, from_date, to_date):
 
 	N_COLS = 10  # A..J
 	purple_fill = PatternFill(start_color="7A5EA7", end_color="7A5EA7", fill_type="solid")
+	total_fill = PatternFill(start_color="EDE7F4", end_color="EDE7F4", fill_type="solid")
 	header_font = Font(bold=True, color="FFFFFF")
 	bold_font = Font(bold=True)
 	center = Alignment(horizontal="center", vertical="center", wrap_text=True)
 	left = Alignment(horizontal="left", vertical="center")
+	right = Alignment(horizontal="right", vertical="center")
 	thin = Side(style="thin", color="000000")
 	box_border = Border(left=thin, right=thin, top=thin, bottom=thin)
 
@@ -840,7 +1046,7 @@ def download_monthly_calendar(employee, from_date, to_date):
 	# --- Column headers ----------------------------------------------------------
 	header_row = 5
 	headers = ["Date", "In", "Out", "In", "Out", "Mandatory\nHours",
-			   "Actual hours\nworked", "Late -in\nmins", "Less Hours\nworked", "Overtime"]
+			   "Actual hours\nworked", "Late-in", "Less Hours\nworked", "Overtime"]
 	for i, label in enumerate(headers, start=1):
 		merge_and_set(header_row, i, i, label, fill=purple_fill, font=header_font)
 
@@ -871,6 +1077,34 @@ def download_monthly_calendar(employee, from_date, to_date):
 			cell.border = box_border
 			cell.alignment = center
 		r += 1
+
+	# --- Totals row ----------------------------------------------------------------
+	totals_row = r
+	merge_and_set(totals_row, 1, 5, "Total", fill=total_fill, font=bold_font, align=right)
+	for col, key in (
+		(6, "mandatory_hours"),
+		(7, "actual_hours"),
+		(8, "late_in_minutes"),
+		(9, "less_hours"),
+		(10, "overtime"),
+	):
+		cell = ws.cell(row=totals_row, column=col, value=totals[key] or None)
+		cell.fill = total_fill
+		cell.font = bold_font
+		cell.alignment = center
+		cell.border = box_border
+	r = totals_row + 1
+
+	# --- Day count summary ----------------------------------------------------------
+	summary_row = r
+	summary = (
+		f"Worked days: {totals['worked_days']}    "
+		f"Absent: {totals['absent_days']}    "
+		f"Leave: {totals['leave_days']}    "
+		f"Holiday: {totals['holiday_days']}"
+	)
+	merge_and_set(summary_row, 1, N_COLS, summary, font=bold_font, align=left, border=False)
+	r = summary_row + 1
 
 	# --- Signature row ---------------------------------------------------------
 	r += 1

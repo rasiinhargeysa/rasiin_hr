@@ -1,0 +1,194 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": " RRF-.#####",
+ "creation": "2026-07-19 21:14:05.235072",
+ "default_view": "List",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "section1",
+  "job_title",
+  "department",
+  "column_break_xu0mr",
+  "reporting_manager_position",
+  "employment_type",
+  "job_category",
+  "justification_section",
+  "reason_for_recruitment",
+  "business_justification",
+  "column_break_zkie7",
+  "expected_start_date",
+  "section_break_xu3sd",
+  "minimum_qualifications",
+  "preferred_qualifications",
+  "column_break_alq3w",
+  "key_skills",
+  "compensation_budget_section",
+  "proposed_salary_range",
+  "column_break_epqu5",
+  "budget_approval",
+  "approved_by"
+ ],
+ "fields": [
+  {
+   "fieldname": "job_title",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Job Title",
+   "reqd": 1
+  },
+  {
+   "fieldname": "department",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Department",
+   "options": "Department",
+   "reqd": 1
+  },
+  {
+   "fieldname": "reporting_manager_position",
+   "fieldtype": "Data",
+   "label": "Reporting Manager / Position",
+   "reqd": 1
+  },
+  {
+   "fieldname": "employment_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Employment Type",
+   "options": "Open-ended\nFixed-term\nInternship"
+  },
+  {
+   "fieldname": "job_category",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Job Category",
+   "options": "Full-time\nPart-time"
+  },
+  {
+   "fieldname": "section1",
+   "fieldtype": "Section Break",
+   "label": "Section 1: Position Details"
+  },
+  {
+   "fieldname": "justification_section",
+   "fieldtype": "Section Break",
+   "label": "Section 2: Justification"
+  },
+  {
+   "fieldname": "column_break_xu0mr",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "reason_for_recruitment",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Reason for Recruitment",
+   "options": "\nNew Position\nReplacement\nExpansion"
+  },
+  {
+   "fieldname": "business_justification",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Business Justification"
+  },
+  {
+   "fieldname": "expected_start_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Expected Start Date"
+  },
+  {
+   "fieldname": "section_break_xu3sd",
+   "fieldtype": "Section Break",
+   "label": "Section 3: Job Requirements"
+  },
+  {
+   "fieldname": "column_break_zkie7",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "minimum_qualifications",
+   "fieldtype": "Data",
+   "label": "Minimum Qualifications"
+  },
+  {
+   "fieldname": "preferred_qualifications",
+   "fieldtype": "Data",
+   "label": "Preferred Qualifications"
+  },
+  {
+   "fieldname": "column_break_alq3w",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "key_skills",
+   "fieldtype": "Data",
+   "label": "Key Skills"
+  },
+  {
+   "fieldname": "compensation_budget_section",
+   "fieldtype": "Section Break",
+   "label": "Section 4: Compensation & Budget"
+  },
+  {
+   "fieldname": "proposed_salary_range",
+   "fieldtype": "Data",
+   "label": "Proposed Salary Range"
+  },
+  {
+   "fieldname": "budget_approval",
+   "fieldtype": "Select",
+   "label": "Budget Approval",
+   "options": "Yes\nNo"
+  },
+  {
+   "fieldname": "approved_by",
+   "fieldtype": "Data",
+   "label": "Approved By"
+  },
+  {
+   "fieldname": "column_break_epqu5",
+   "fieldtype": "Column Break"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-07-19 21:34:11.101972",
+ "modified_by": "Administrator",
+ "module": "Rasiin Hr",
+ "name": "Recruitment Requisition Form",
+ "naming_rule": "Expression (old style)",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "All",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

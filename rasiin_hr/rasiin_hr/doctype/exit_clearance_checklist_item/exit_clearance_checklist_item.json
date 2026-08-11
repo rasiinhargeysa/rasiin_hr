@@ -1,0 +1,63 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-07-19 17:37:31.345839",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "department",
+  "item_to_be_cleared",
+  "verified_by",
+  "signature",
+  "date"
+ ],
+ "fields": [
+  {
+   "fieldname": "department",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Department",
+   "options": "Department",
+   "reqd": 1
+  },
+  {
+   "columns": 3,
+   "fieldname": "item_to_be_cleared",
+   "fieldtype": "Small Text",
+   "in_list_view": 1,
+   "label": "Item to Be Cleared"
+  },
+  {
+   "fieldname": "verified_by",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Verified By"
+  },
+  {
+   "fieldname": "signature",
+   "fieldtype": "Data",
+   "label": "Signature",
+   "read_only": 1
+  },
+  {
+   "default": "Today",
+   "fieldname": "date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Date"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-07-19 18:01:54.718478",
+ "modified_by": "Administrator",
+ "module": "Rasiin Hr",
+ "name": "Exit Clearance Checklist Item",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

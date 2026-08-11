@@ -1,0 +1,61 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-07-19 20:01:20.783275",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "employee",
+  "employee_name",
+  "job_title",
+  "signature"
+ ],
+ "fields": [
+  {
+   "fieldname": "employee",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Employee",
+   "options": "Employee",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "employee.employee_name",
+   "fieldname": "employee_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Employee Name",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "employee.designation",
+   "fieldname": "job_title",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Job Title",
+   "options": "Designation",
+   "reqd": 1
+  },
+  {
+   "default": "________",
+   "fieldname": "signature",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Signature",
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-07-19 20:39:56.005218",
+ "modified_by": "Administrator",
+ "module": "Rasiin Hr",
+ "name": "STAFF TRAINING FORM ITEM",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

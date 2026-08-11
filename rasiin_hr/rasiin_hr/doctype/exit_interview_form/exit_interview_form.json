@@ -1,0 +1,282 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "EMP-EXIT-.#####",
+ "creation": "2026-07-19 09:08:19.406338",
+ "default_view": "List",
+ "description": "\u2022\tAny additional remarks",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "employee",
+  "department",
+  "date_of_hiring",
+  "column_break_qpner",
+  "last_working_day",
+  "interview_date",
+  "interview_conducted_by",
+  "section_break_kisvs",
+  "voluntary_resignation",
+  "end_of_contract",
+  "other_specify",
+  "column_break_8gztr",
+  "termination",
+  "retirement",
+  "please_explain_the_main_reason_for_leaving",
+  "section_break_eakad",
+  "job_role",
+  "were_your_duties_clearly_defined",
+  "comment",
+  "work_environment_column",
+  "how_would_you_describe_the_workplace_culture",
+  "what_factors_helped_or_hindered_your_performance",
+  "column_break_vk31z",
+  "section_break_pzrqg",
+  "did_you_receive_sufficient_training_for_your_role",
+  "what_additional_training_would_have_helped",
+  "compensation_and_benefits",
+  "were_you_satisfied_with_salary_and_benefits",
+  "if_yes_why",
+  "suggestions_for_improvement_section",
+  "what_changes_would_you_recommend_for_improving_the_workplace",
+  "column_break_xiwos",
+  "final_comments",
+  "would_you_consider_rejoining_the_organization_in_the_future",
+  "any_additional_remarks"
+ ],
+ "fields": [
+  {
+   "fieldname": "employee",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Employee",
+   "options": "Employee",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "employee.department",
+   "fieldname": "department",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Department",
+   "options": "Department",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "employee.date_of_joining",
+   "fieldname": "date_of_hiring",
+   "fieldtype": "Date",
+   "label": "Date of Hiring"
+  },
+  {
+   "fieldname": "column_break_qpner",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "last_working_day",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Last Working Day",
+   "reqd": 1
+  },
+  {
+   "default": "Today",
+   "fieldname": "interview_date",
+   "fieldtype": "Date",
+   "label": "Interview Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "interview_conducted_by",
+   "fieldtype": "Data",
+   "label": "Interview Conducted By"
+  },
+  {
+   "fieldname": "section_break_kisvs",
+   "fieldtype": "Section Break",
+   "label": " Section B: Reason for Leaving"
+  },
+  {
+   "fieldname": "voluntary_resignation",
+   "fieldtype": "Data",
+   "label": "Voluntary Resignation"
+  },
+  {
+   "fieldname": "end_of_contract",
+   "fieldtype": "Select",
+   "label": "End of contract",
+   "options": "Yes\nNo"
+  },
+  {
+   "fieldname": "other_specify",
+   "fieldtype": "Data",
+   "label": "Other Specify"
+  },
+  {
+   "fieldname": "column_break_8gztr",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "termination",
+   "fieldtype": "Select",
+   "label": "Termination",
+   "options": "Yes\nNo"
+  },
+  {
+   "fieldname": "retirement",
+   "fieldtype": "Select",
+   "label": "Retirement",
+   "options": "Yes\nNo"
+  },
+  {
+   "fieldname": "please_explain_the_main_reason_for_leaving",
+   "fieldtype": "Data",
+   "label": "Please explain the main reason for leaving"
+  },
+  {
+   "fieldname": "section_break_eakad",
+   "fieldtype": "Section Break",
+   "label": "Section C: Work Experience"
+  },
+  {
+   "fieldname": "were_your_duties_clearly_defined",
+   "fieldtype": "Select",
+   "label": "Were your duties clearly defined?",
+   "options": "Yes\nNo"
+  },
+  {
+   "fieldname": "comment",
+   "fieldtype": "Data",
+   "label": "Comment"
+  },
+  {
+   "fieldname": "how_would_you_describe_the_workplace_culture",
+   "fieldtype": "Data",
+   "label": "How would you describe the workplace culture?"
+  },
+  {
+   "fieldname": "what_factors_helped_or_hindered_your_performance",
+   "fieldtype": "Data",
+   "label": "What factors helped or hindered your performance?"
+  },
+  {
+   "fieldname": "job_role",
+   "fieldtype": "HTML",
+   "label": "Job Role & Responsibilities",
+   "options": "<b>Job Role &amp; Responsibilities</b>"
+  },
+  {
+   "fieldname": "work_environment_column",
+   "fieldtype": "HTML",
+   "label": "Work Environment",
+   "options": "<b>Work Environment</b>"
+  },
+  {
+   "fieldname": "section_break_pzrqg",
+   "fieldtype": "HTML",
+   "label": "Section D: Training & Development",
+   "options": "<h2 style=\"font-weight: bold;\">Section D: Training &amp; Development</h2>"
+  },
+  {
+   "fieldname": "did_you_receive_sufficient_training_for_your_role",
+   "fieldtype": "Select",
+   "label": "Did you receive sufficient training for your role",
+   "options": "Yes\nNo"
+  },
+  {
+   "fieldname": "what_additional_training_would_have_helped",
+   "fieldtype": "Data",
+   "label": "What additional training would have helped"
+  },
+  {
+   "fieldname": "compensation_and_benefits",
+   "fieldtype": "HTML",
+   "label": "Compensation and Benefits",
+   "options": "<b>Section E: Compensation &amp; Benefits</b>"
+  },
+  {
+   "fieldname": "were_you_satisfied_with_salary_and_benefits",
+   "fieldtype": "Select",
+   "label": "Were you satisfied with salary and benefits",
+   "options": "Yes\nNo"
+  },
+  {
+   "fieldname": "if_yes_why",
+   "fieldtype": "Data",
+   "label": "If Yes Why?"
+  },
+  {
+   "fieldname": "column_break_vk31z",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "suggestions_for_improvement_section",
+   "fieldtype": "Section Break",
+   "label": "Section F: Suggestions for Improvement"
+  },
+  {
+   "fieldname": "what_changes_would_you_recommend_for_improving_the_workplace",
+   "fieldtype": "Data",
+   "label": "What changes would you recommend for improving the workplace?"
+  },
+  {
+   "fieldname": "column_break_xiwos",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "final_comments",
+   "fieldtype": "HTML",
+   "label": "Section G: Final Comments",
+   "options": "<h2 style=\"font-weight: bold;\">Section G: Final Comments</h2>"
+  },
+  {
+   "fieldname": "would_you_consider_rejoining_the_organization_in_the_future",
+   "fieldtype": "Select",
+   "label": "Would you consider rejoining the organization in the future?",
+   "options": "Yes\nNo"
+  },
+  {
+   "fieldname": "any_additional_remarks",
+   "fieldtype": "Data",
+   "label": "Any additional remarks"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-07-19 09:36:28.278274",
+ "modified_by": "Administrator",
+ "module": "Rasiin Hr",
+ "name": "Exit Interview Form",
+ "naming_rule": "Expression (old style)",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "All",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

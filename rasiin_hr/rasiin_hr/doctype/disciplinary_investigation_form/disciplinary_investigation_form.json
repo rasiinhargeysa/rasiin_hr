@@ -1,0 +1,306 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "DIS-Inv-.##### ",
+ "creation": "2026-07-21 08:46:16.066189",
+ "default_view": "List",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "section1",
+  "employee",
+  "employee_name",
+  "department",
+  "date",
+  "job_title",
+  "joining_date",
+  "reported_by",
+  "section_break_ggvjx",
+  "section2",
+  "nature_of_misconduct_issue",
+  "location_of_incident",
+  "date_of_incident",
+  "witnesses_if_any",
+  "initial_evidence_collected",
+  "section_break_gpxzv",
+  "chairperson",
+  "hr_manager",
+  "line_manager_supervisor",
+  "column_break_aevh5",
+  "committee_member_1",
+  "committee_member_2",
+  "committee_member_3",
+  "section_break_jdvnc",
+  "problem_statement",
+  "immediate_causes",
+  "underlying_causes",
+  "root_cause",
+  "section_e",
+  "corrective_action",
+  "responsible_person",
+  "column_break_ecqvc",
+  "preventive_action",
+  "timeline_for_implementation",
+  "sectionf",
+  "committee_decision",
+  "column_break_vpda9",
+  "if_other_specify",
+  "section_break_hgqh7",
+  "employee_rights"
+ ],
+ "fields": [
+  {
+   "fieldname": "employee",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Employee",
+   "options": "Employee",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "employee.employee_name",
+   "fieldname": "employee_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Employee Name",
+   "read_only": 1
+  },
+  {
+   "default": "Today",
+   "fieldname": "date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Date"
+  },
+  {
+   "fieldname": "section_break_ggvjx",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "employee.department",
+   "fieldname": "department",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Department",
+   "options": "Department",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "employee.designation",
+   "fieldname": "job_title",
+   "fieldtype": "Link",
+   "label": "Job Title",
+   "options": "Designation",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "employee.date_of_joining",
+   "fieldname": "joining_date",
+   "fieldtype": "Date",
+   "label": "JOINING DATE",
+   "read_only": 1
+  },
+  {
+   "fieldname": "reported_by",
+   "fieldtype": "Data",
+   "label": "Reported By"
+  },
+  {
+   "fieldname": "section1",
+   "fieldtype": "HTML",
+   "options": "<b>Section A: Case Information</b>"
+  },
+  {
+   "fieldname": "section2",
+   "fieldtype": "HTML",
+   "options": "<b>Section B: Incident Description</b>"
+  },
+  {
+   "fieldname": "nature_of_misconduct_issue",
+   "fieldtype": "Data",
+   "label": "Nature of Misconduct /Issue"
+  },
+  {
+   "fieldname": "location_of_incident",
+   "fieldtype": "Data",
+   "label": "Location of Incident"
+  },
+  {
+   "fieldname": "date_of_incident",
+   "fieldtype": "Data",
+   "label": "Date of Incident"
+  },
+  {
+   "fieldname": "witnesses_if_any",
+   "fieldtype": "Data",
+   "label": "Witnesses (if any)"
+  },
+  {
+   "fieldname": "initial_evidence_collected",
+   "fieldtype": "Data",
+   "label": "Initial Evidence Collected"
+  },
+  {
+   "fieldname": "section_break_gpxzv",
+   "fieldtype": "Section Break",
+   "label": "Section C: Investigation Committee"
+  },
+  {
+   "fieldname": "chairperson",
+   "fieldtype": "Data",
+   "label": "Chairperson"
+  },
+  {
+   "fieldname": "hr_manager",
+   "fieldtype": "Data",
+   "label": "HR Manager"
+  },
+  {
+   "fieldname": "line_manager_supervisor",
+   "fieldtype": "Data",
+   "label": "Line Manager / Supervisor"
+  },
+  {
+   "fieldname": "column_break_aevh5",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "committee_member_1",
+   "fieldtype": "Data",
+   "label": "Committee Member 1"
+  },
+  {
+   "fieldname": "committee_member_2",
+   "fieldtype": "Data",
+   "label": "Committee Member 2"
+  },
+  {
+   "fieldname": "committee_member_3",
+   "fieldtype": "Data",
+   "label": "Committee Member 3"
+  },
+  {
+   "fieldname": "section_break_jdvnc",
+   "fieldtype": "Section Break",
+   "label": "Section D: Root Cause Analysis"
+  },
+  {
+   "fieldname": "problem_statement",
+   "fieldtype": "Small Text",
+   "label": "1. Problem Statement (Clearly describe the misconduct/performance issue)"
+  },
+  {
+   "fieldname": "immediate_causes",
+   "fieldtype": "Small Text",
+   "label": "2. Immediate Causes (What happened?)"
+  },
+  {
+   "fieldname": "underlying_causes",
+   "fieldtype": "Data",
+   "label": "3. Underlying Causes (Why did it happen?)"
+  },
+  {
+   "fieldname": "root_cause",
+   "fieldtype": "Data",
+   "label": "4. Root Cause (Fundamental reason)"
+  },
+  {
+   "fieldname": "section_e",
+   "fieldtype": "Section Break",
+   "label": "Section E: Corrective & Preventive Actions"
+  },
+  {
+   "fieldname": "corrective_action",
+   "fieldtype": "Data",
+   "label": "Corrective Action (short\u2011term fix):"
+  },
+  {
+   "fieldname": "responsible_person",
+   "fieldtype": "Data",
+   "label": "Responsible Person(s):"
+  },
+  {
+   "fieldname": "column_break_ecqvc",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "preventive_action",
+   "fieldtype": "Data",
+   "label": "Preventive Action (long\u2011term solution):"
+  },
+  {
+   "fieldname": "timeline_for_implementation",
+   "fieldtype": "Data",
+   "label": "Timeline for Implementation"
+  },
+  {
+   "fieldname": "sectionf",
+   "fieldtype": "Section Break",
+   "label": "Section F: Committee Decision"
+  },
+  {
+   "fieldname": "committee_decision",
+   "fieldtype": "Select",
+   "label": "Committee Decision",
+   "options": "\nVerbal Warning\nFinal Written Warning\nTermination\nWritten Warning\nSuspension\nOther"
+  },
+  {
+   "fieldname": "column_break_vpda9",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "if_other_specify",
+   "fieldtype": "Data",
+   "label": "If other Specify"
+  },
+  {
+   "fieldname": "section_break_hgqh7",
+   "fieldtype": "Section Break",
+   "label": "Section G: Employee Rights"
+  },
+  {
+   "fieldname": "employee_rights",
+   "fieldtype": "Select",
+   "label": "Employee Rights",
+   "options": "\nEmployee informed of allegations\nEmployee given chance to respond\nEmployee appeal rights explained"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-07-21 09:03:38.274640",
+ "modified_by": "Administrator",
+ "module": "Rasiin Hr",
+ "name": "Disciplinary Investigation Form",
+ "naming_rule": "Expression (old style)",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "All",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

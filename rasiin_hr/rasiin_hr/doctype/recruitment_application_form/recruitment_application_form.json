@@ -1,0 +1,219 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "RRF-.####",
+ "creation": "2026-07-19 21:58:42.205189",
+ "default_view": "List",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "personal_information",
+  "full_name",
+  "date_of_birth",
+  "gender",
+  "contact_number",
+  "email_address",
+  "home_address",
+  "column_break_hnn90",
+  "position_applied_for",
+  "job_title",
+  "department",
+  "employment_type",
+  "job_category",
+  "expected_salary",
+  "available_start_date",
+  "section_break_jwsxi",
+  "employee_education",
+  "section_break_qohc5",
+  "employee_external_work_history",
+  "section_break_pyia0",
+  "technical_skills",
+  "soft_skills",
+  "column_break_orxyq",
+  "languages",
+  "section_break_pggn7",
+  "references"
+ ],
+ "fields": [
+  {
+   "fieldname": "full_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Full Name",
+   "reqd": 1
+  },
+  {
+   "fieldname": "date_of_birth",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Date of Birth",
+   "reqd": 1
+  },
+  {
+   "fieldname": "gender",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Gender",
+   "options": "Gender",
+   "reqd": 1
+  },
+  {
+   "fieldname": "contact_number",
+   "fieldtype": "Data",
+   "label": "Contact Number"
+  },
+  {
+   "fieldname": "email_address",
+   "fieldtype": "Data",
+   "label": "Email Address"
+  },
+  {
+   "fieldname": "home_address",
+   "fieldtype": "Data",
+   "label": "Home Address"
+  },
+  {
+   "fieldname": "column_break_hnn90",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "job_title",
+   "fieldtype": "Data",
+   "label": "Job Title"
+  },
+  {
+   "fieldname": "department",
+   "fieldtype": "Data",
+   "label": "Department"
+  },
+  {
+   "fieldname": "employment_type",
+   "fieldtype": "Select",
+   "label": "Employment Type",
+   "options": "Permanent\nFixed-term\nInternship"
+  },
+  {
+   "fieldname": "job_category",
+   "fieldtype": "Select",
+   "label": "Job Category",
+   "options": "Full-time\nPart-time"
+  },
+  {
+   "fieldname": "expected_salary",
+   "fieldtype": "Currency",
+   "label": "Expected Salary"
+  },
+  {
+   "fieldname": "available_start_date",
+   "fieldtype": "Date",
+   "label": "Available Start Date"
+  },
+  {
+   "fieldname": "section_break_jwsxi",
+   "fieldtype": "Section Break",
+   "label": "Section 3: Education Background"
+  },
+  {
+   "fieldname": "personal_information",
+   "fieldtype": "HTML",
+   "label": "Personal Information",
+   "options": "<b>Section 1: Personal Information </b>"
+  },
+  {
+   "fieldname": "position_applied_for",
+   "fieldtype": "HTML",
+   "label": "Position Applied For",
+   "options": "<b>Section 2: Position Applied For</b>"
+  },
+  {
+   "fieldname": "employee_education",
+   "fieldtype": "Table",
+   "label": "Employee Education",
+   "options": "Employee Education",
+   "reqd": 1
+  },
+  {
+   "fieldname": "section_break_qohc5",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "employee_external_work_history",
+   "fieldtype": "Table",
+   "label": "Employee External Work History",
+   "options": "Employee External Work History"
+  },
+  {
+   "fieldname": "section_break_pyia0",
+   "fieldtype": "Section Break",
+   "label": "Section 5: Skills & Competencies"
+  },
+  {
+   "fieldname": "technical_skills",
+   "fieldtype": "Data",
+   "label": "Technical Skills"
+  },
+  {
+   "fieldname": "soft_skills",
+   "fieldtype": "Data",
+   "label": "Soft Skills"
+  },
+  {
+   "fieldname": "column_break_orxyq",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "languages",
+   "fieldtype": "Data",
+   "label": "Languages"
+  },
+  {
+   "fieldname": "section_break_pggn7",
+   "fieldtype": "Section Break",
+   "label": "Section 6: References"
+  },
+  {
+   "fieldname": "references",
+   "fieldtype": "Table",
+   "label": "References",
+   "options": "References"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-07-19 22:12:34.154838",
+ "modified_by": "Administrator",
+ "module": "Rasiin Hr",
+ "name": "Recruitment Application Form",
+ "naming_rule": "Expression (old style)",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "All",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

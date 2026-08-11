@@ -1,0 +1,112 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-07-20 09:42:10.817066",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "key_result_areas",
+  "key_performance_indicator",
+  "weight_of_kpis",
+  "target",
+  "actual",
+  "score",
+  "final",
+  "status",
+  "priority",
+  "ending_date"
+ ],
+ "fields": [
+  {
+   "columns": 2,
+   "fieldname": "key_result_areas",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Key Result Areas",
+   "reqd": 1
+  },
+  {
+   "columns": 1,
+   "fieldname": "key_performance_indicator",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Key Performance Indicator",
+   "reqd": 1
+  },
+  {
+   "columns": 1,
+   "fieldname": "weight_of_kpis",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Weight of KPIs ",
+   "reqd": 1
+  },
+  {
+   "columns": 1,
+   "description": "No Letters allows here",
+   "fieldname": "target",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Target",
+   "reqd": 1
+  },
+  {
+   "columns": 1,
+   "fieldname": "actual",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Actual",
+   "reqd": 1
+  },
+  {
+   "columns": 1,
+   "fieldname": "score",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Score",
+   "read_only": 1,
+   "reqd": 1
+  },
+  {
+   "columns": 1,
+   "fieldname": "final",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Final",
+   "read_only": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "\nNot Started\nPending\nIn progress\ncompleted\nOverdue"
+  },
+  {
+   "columns": 1,
+   "fieldname": "ending_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Ending Date"
+  },
+  {
+   "fieldname": "priority",
+   "fieldtype": "Select",
+   "label": "Priority",
+   "options": "\nHigh\nLow\nMiddle"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-08-05 00:44:56.356378",
+ "modified_by": "Administrator",
+ "module": "Rasiin Hr",
+ "name": "Performance KPI Items",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

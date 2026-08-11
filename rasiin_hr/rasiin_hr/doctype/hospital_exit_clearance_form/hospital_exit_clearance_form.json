@@ -1,0 +1,195 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "HOS-EXIT-.####",
+ "creation": "2026-07-19 17:41:26.449826",
+ "default_view": "List",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "employee",
+  "employee_name",
+  "department",
+  "column_break_kxbk3",
+  "job_title",
+  "date_of_joining",
+  "last_working_date",
+  "section_break_ltb5b",
+  "exit_clearance_checklist_item",
+  "section_break_1jvrw",
+  "all_hospital_property_returned",
+  "all_financial_obligations_settled",
+  "column_break_qni5s",
+  "all_patient_care_responsibilities_handed_over",
+  "hr_clearance_approved",
+  "section_break_kee7j",
+  "remarks",
+  "section_break_zuz6i",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "employee",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Employee",
+   "options": "Employee",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "employee.employee_name",
+   "fieldname": "employee_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Employee Name",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "employee.department",
+   "fieldname": "department",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Department",
+   "options": "Department",
+   "read_only": 1,
+   "reqd": 1
+  },
+  {
+   "fetch_from": "employee.designation",
+   "fieldname": "job_title",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Job Title",
+   "options": "Designation",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "employee.date_of_joining",
+   "fieldname": "date_of_joining",
+   "fieldtype": "Date",
+   "label": "Date of joining",
+   "read_only": 1
+  },
+  {
+   "fieldname": "last_working_date",
+   "fieldtype": "Date",
+   "label": "Last Working Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "section_break_ltb5b",
+   "fieldtype": "Section Break",
+   "label": "Section B: Clearance Checklist"
+  },
+  {
+   "fieldname": "exit_clearance_checklist_item",
+   "fieldtype": "Table",
+   "label": "Exit Clearance Checklist Item",
+   "options": "Exit Clearance Checklist Item"
+  },
+  {
+   "fieldname": "section_break_1jvrw",
+   "fieldtype": "Section Break",
+   "label": "Section C: Final Confirmation"
+  },
+  {
+   "fieldname": "all_hospital_property_returned",
+   "fieldtype": "Select",
+   "label": "All hospital property returned?",
+   "options": "\nYes\nNo"
+  },
+  {
+   "fieldname": "all_financial_obligations_settled",
+   "fieldtype": "Select",
+   "label": "All financial obligations settled?",
+   "options": "\nYes\nNo"
+  },
+  {
+   "fieldname": "column_break_qni5s",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "all_patient_care_responsibilities_handed_over",
+   "fieldtype": "Select",
+   "label": "All patient care responsibilities handed over?",
+   "options": "\nYes\nNo"
+  },
+  {
+   "fieldname": "hr_clearance_approved",
+   "fieldtype": "Select",
+   "label": "HR clearance approved?",
+   "options": "\nYes\nNo"
+  },
+  {
+   "fieldname": "section_break_kee7j",
+   "fieldtype": "Section Break",
+   "label": "Section D: Remarks"
+  },
+  {
+   "fieldname": "remarks",
+   "fieldtype": "Text",
+   "label": "Remarks "
+  },
+  {
+   "fieldname": "section_break_zuz6i",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "column_break_kxbk3",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Hospital Exit Clearance Form",
+   "print_hide": 1,
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2026-07-19 18:05:33.889492",
+ "modified_by": "Administrator",
+ "module": "Rasiin Hr",
+ "name": "Hospital Exit Clearance Form",
+ "naming_rule": "Expression (old style)",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "amend": 1,
+   "cancel": 1,
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "amend": 1,
+   "cancel": 1,
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "All",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

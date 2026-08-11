@@ -1,0 +1,59 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-07-19 19:39:18.481756",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "on_boarding_assigned_person",
+  "date",
+  "key_activities",
+  "inductee_signature"
+ ],
+ "fields": [
+  {
+   "fieldname": "on_boarding_assigned_person",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "ON-BOARDING ASSIGNED PERSON",
+   "options": "HR\nLine Manager",
+   "reqd": 1
+  },
+  {
+   "default": "Today",
+   "fieldname": "date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "key_activities",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": " KEY ACTIVITIES",
+   "reqd": 1
+  },
+  {
+   "default": "__________",
+   "fieldname": "inductee_signature",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "INDUCTEE SIGNATURE",
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-07-19 19:40:14.554818",
+ "modified_by": "Administrator",
+ "module": "Rasiin Hr",
+ "name": "ON BOARDING FORM ITEM",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

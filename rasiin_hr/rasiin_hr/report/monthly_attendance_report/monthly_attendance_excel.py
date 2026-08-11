@@ -14,6 +14,11 @@ Produces a downloadable Excel workbook:
   Day status precedence, matching the Personal Attendance Report and the
   monthly grid page: Leave > Holiday > Absent > normal shift slots.
 
+This module holds ONLY the workbook rendering. All punch matching lives in
+monthly_attendance_report.py and is pulled in via get_report_data(), so the
+export always agrees with what the on-screen grid shows — do not duplicate
+matching logic here.
+
 Requires: openpyxl.
 """
 
@@ -29,8 +34,6 @@ from openpyxl.utils import get_column_letter
 # ═══════════════════════════════════════════════════════════
 #  CONFIG
 # ═══════════════════════════════════════════════════════════
-SHIFT_MATCH_BUFFER_HOURS = 2
-
 # ── Colours / styling ──
 HEADER_FILL    = PatternFill("solid", fgColor="8064A2")   # purple (row 1)
 SUBHEADER_FILL = PatternFill("solid", fgColor="A68FC4")   # light purple (row 2, In/Out)

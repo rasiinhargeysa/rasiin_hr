@@ -119,6 +119,20 @@ class PersonalAttendanceCalendar {
 			}
 			.attendance-grid td.pa-absent { background: #FDE9E9; color: #e11d48; font-weight: 600; }
 			.attendance-grid td.pa-leave { background: #DCE6F1; color: #2563eb; font-weight: 600; }
+			.attendance-grid tfoot td {
+				background: #EDE7F4;
+				font-weight: 700;
+			}
+			.attendance-grid tfoot td.pa-total-label { text-align: right; }
+			.pa-summary {
+				margin-top: 10px;
+				font-size: 12px;
+				font-weight: 600;
+				color: #333;
+				display: flex;
+				gap: 24px;
+				flex-wrap: wrap;
+			}
 			.pa-legend { margin-top: 12px; font-size: 12px; color: #444; display: flex; gap: 24px; flex-wrap: wrap; }
 			.pa-signatures {
 				display: flex;
@@ -223,7 +237,34 @@ class PersonalAttendanceCalendar {
 			body = `<tr><td colspan="10">No records found</td></tr>`;
 		}
 
-		return `<table class="attendance-grid"><thead>${head}</thead><tbody>${body}</tbody></table>`;
+		const t = result.totals || {};
+		const foot = result.rows.length
+			? `<tfoot>
+				<tr>
+					<td class="pa-total-label" colspan="5">Total</td>
+					<td>${t.mandatory_hours || ""}</td>
+					<td>${t.actual_hours || ""}</td>
+					<td>${t.late_in_minutes || ""}</td>
+					<td>${t.less_hours || ""}</td>
+					<td>${t.overtime || ""}</td>
+				</tr>
+			</tfoot>`
+			: "";
+
+		return `<table class="attendance-grid"><thead>${head}</thead><tbody>${body}</tbody>${foot}</table>`;
+	}
+
+	summary_html(result) {
+		const t = result.totals;
+		if (!t) return "";
+		return `
+			<div class="pa-summary">
+				<span>Worked days: ${t.worked_days || 0}</span>
+				<span>Absent: ${t.absent_days || 0}</span>
+				<span>Leave: ${t.leave_days || 0}</span>
+				<span>Holiday: ${t.holiday_days || 0}</span>
+			</div>
+		`;
 	}
 
 	legend_html() {
@@ -242,6 +283,7 @@ class PersonalAttendanceCalendar {
 		this.$wrapper.html(`
 			${this.header_block_html(result)}
 			<div style="overflow-x:auto;">${this.table_html(result)}</div>
+			${this.summary_html(result)}
 			${this.legend_html()}
 		`);
 	}
@@ -256,6 +298,7 @@ class PersonalAttendanceCalendar {
 		const bodyHtml = `
 			${this.header_block_html(this.last_result)}
 			${this.table_html(this.last_result)}
+			${this.summary_html(this.last_result)}
 			${this.legend_html()}
 			<div class="pa-signatures">
 				<div class="pa-signature-block"><div class="pa-signature-line">Employee signature</div></div>
@@ -289,8 +332,14 @@ class PersonalAttendanceCalendar {
 						background: #7A5EA7 !important; color: #fff !important;
 						-webkit-print-color-adjust: exact; print-color-adjust: exact;
 					}
+					table.attendance-grid tfoot td {
+						background: #EDE7F4 !important; font-weight: 700;
+						-webkit-print-color-adjust: exact; print-color-adjust: exact;
+					}
+					table.attendance-grid tfoot td.pa-total-label { text-align: right; }
 					td.pa-absent { background: #FDE9E9 !important; color: #e11d48; -webkit-print-color-adjust: exact; }
 					td.pa-leave { background: #DCE6F1 !important; color: #2563eb; -webkit-print-color-adjust: exact; }
+					.pa-summary { margin-top: 10px; font-size: 12px; font-weight: 600; display: flex; gap: 24px; flex-wrap: wrap; }
 					.pa-legend { margin-top: 12px; font-size: 12px; display: flex; gap: 24px; flex-wrap: wrap; }
 					.pa-signatures { display: flex; justify-content: space-between; margin-top: 60px; page-break-inside: avoid; }
 					.pa-signature-block { width: 30%; text-align: center; }

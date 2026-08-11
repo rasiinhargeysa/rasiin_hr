@@ -25,17 +25,62 @@ Day status precedence, matching the Personal Attendance Report:
   4. Present    (normal shift slot rendering)
 
 Adjust LEAVE_TYPE_CODE_MAP below if your Leave Type doctype names differ.
+
+DUPLICATE PUNCHES
+-----------------
+Repeat swipes on the same reader used to surface as an In and an Out at the
+same HH:MM (and a lone punch became In == Out, because the slot's earliest
+and latest punch were the same record). Swipes within
+PUNCH_DEDUPE_WINDOW_MINUTES of each other are collapsed into one punch, and
+a slot never reports an Out that isn't strictly later than its In — the
+punch is kept as the In and the Out is left blank.
+
+NO PUNCH IS EVER DROPPED
+------------------------
+Matching runs in two passes:
+
+  1. Window pass — each punch is placed in the slot whose match window it
+     falls inside. Windows are open-ended at the edges of the day (see
+     _build_slot_windows) and clamped at the midpoint between adjacent
+     slots.
+  2. Nearest-slot pass — any punch that landed in NO window is attached to
+     whichever slot it sits closest to, rather than being discarded.
+
+The second pass is the important one. Previously a punch outside every
+window vanished from the report with no trace, so a shift whose configured
+time_out didn't match reality silently lost its check-out. Now the worst
+case is a punch shown against a slightly odd slot, which is visible and
+fixable, instead of a blank cell that looks like the employee never left.
 """
 
 from datetime import datetime, timedelta, date, time as time_cls
 
 import frappe
 
-SHIFT_CHILD_TABLE_FIELDNAME = "shifts"
+SHIFT_CHILD_TABLE_FIELDNAME = "shift_type_slot"
 SHIFT_TYPE_SUBFIELD = "shift_type"
 SHIFT_TIME_IN_SUBFIELD = "time_in"
 SHIFT_TIME_OUT_SUBFIELD = "time_out"
-SHIFT_MATCH_BUFFER_HOURS = 2
+
+# Set to True to skip child-table auto-detection and always use the four
+# constants above. The Personal Attendance Report hardcodes
+# `shift_type_slot`, so forcing it here keeps both reports reading the exact
+# same source — worth doing if debug_shift_detection() returns anything
+# unexpected.
+FORCE_SHIFT_CONFIG = True
+
+# Marker for which matching rule this file implements. The boundary between
+# two consecutive shift slots is the earliest moment a check-in for the
+# LATER slot is accepted, i.e.
+#     next_slot.time_in - next_slot.begin_check_in_before_shift_start_time
+# This replaces the old fixed-hours buffer, which cut off late check-outs,
+# and the midpoint rule, which flipped a late departure into the next
+# slot's check-in depending on how long the break happened to be.
+BOUNDARY_RULE = "check_in_grace"
+
+# How close two swipes have to be before they're treated as the same punch.
+# Raise this (e.g. 5) if your readers commonly register repeats.
+PUNCH_DEDUPE_WINDOW_MINUTES = 1
 
 # Map Leaves Assigment.leave_type values to the short codes used in the
 # grid/legend. Adjust the keys on the left to match your actual Leave Type
@@ -48,16 +93,29 @@ LEAVE_TYPE_CODE_MAP = {
 }
 
 _SHIFT_CONFIG_CACHE = {}
+_SHIFT_TYPE_BUFFER_CACHE = {}
 
 
 def _detect_shift_config():
     """
-    Auto-detects the Employee child table that holds shift slots, instead
-    of relying on hardcoded fieldnames (which may not match your instance's
-    "Shift Type Slot" table). Falls back to the hardcoded constants above
-    if nothing matching is found.
+    Resolves which Employee child table holds shift slots.
+
+    With FORCE_SHIFT_CONFIG on, the module constants are used as-is. With it
+    off, the Employee doctype's child tables are scanned for a shift link
+    plus a pair of Time fields — handy if your install renamed things, but
+    it can guess wrong, which is why forcing is the default.
     """
     if _SHIFT_CONFIG_CACHE:
+        return _SHIFT_CONFIG_CACHE
+
+    if FORCE_SHIFT_CONFIG:
+        _SHIFT_CONFIG_CACHE.update({
+            "table_field": SHIFT_CHILD_TABLE_FIELDNAME,
+            "type_field": SHIFT_TYPE_SUBFIELD,
+            "time_in_field": SHIFT_TIME_IN_SUBFIELD,
+            "time_out_field": SHIFT_TIME_OUT_SUBFIELD,
+            "source": "forced",
+        })
         return _SHIFT_CONFIG_CACHE
 
     meta = frappe.get_meta("Employee")
@@ -85,17 +143,59 @@ def _detect_shift_config():
                 "type_field": type_field,
                 "time_in_field": time_in_field,
                 "time_out_field": time_out_field,
+                "source": "detected",
             })
             return _SHIFT_CONFIG_CACHE
 
-    # Nothing auto-detected — fall back to the hardcoded guesses
+    # Nothing auto-detected — fall back to the constants
     _SHIFT_CONFIG_CACHE.update({
         "table_field": SHIFT_CHILD_TABLE_FIELDNAME,
         "type_field": SHIFT_TYPE_SUBFIELD,
         "time_in_field": SHIFT_TIME_IN_SUBFIELD,
         "time_out_field": SHIFT_TIME_OUT_SUBFIELD,
+        "source": "fallback",
     })
     return _SHIFT_CONFIG_CACHE
+
+
+def _get_shift_type_grace(shift_type):
+    """
+    Returns (before, after) timedeltas straight from the Shift Type:
+      before = begin_check_in_before_shift_start_time
+      after  = allow_check_out_after_shift_end_time
+
+    These are used RAW, with no minimum floor. A floor would push the
+    slot boundary earlier and undo the whole point of the rule — with a
+    2h floor and a 16:00 afternoon shift the boundary lands at 14:00,
+    which is exactly where a 14:04 departure gets misread as an early
+    afternoon check-in.
+    """
+    if not shift_type:
+        return timedelta(0), timedelta(0)
+
+    if shift_type in _SHIFT_TYPE_BUFFER_CACHE:
+        return _SHIFT_TYPE_BUFFER_CACHE[shift_type]
+
+    before = after = timedelta(0)
+    try:
+        row = frappe.db.get_value(
+            "Shift Type",
+            shift_type,
+            [
+                "begin_check_in_before_shift_start_time",
+                "allow_check_out_after_shift_end_time",
+            ],
+            as_dict=True,
+        )
+        if row:
+            before = timedelta(minutes=row.get("begin_check_in_before_shift_start_time") or 0)
+            after = timedelta(minutes=row.get("allow_check_out_after_shift_end_time") or 0)
+    except Exception:
+        # Shift Type missing, or fields not present in this install
+        pass
+
+    _SHIFT_TYPE_BUFFER_CACHE[shift_type] = (before, after)
+    return before, after
 
 
 @frappe.whitelist()
@@ -155,6 +255,88 @@ def debug_shift_detection():
     """Call via /api/method/<app>.<module>.monthly_attendance_report.debug_shift_detection
     to confirm which Employee child table/fields the report is using."""
     return _detect_shift_config()
+
+
+@frappe.whitelist()
+def debug_slot_windows(employee, day):
+    """
+    Diagnostic helper: shows each shift slot's match window for one
+    employee on one date, plus that day's punches and where each one landed.
+
+      /api/method/<app>.<...>.debug_slot_windows?employee=EMP-00026&day=2026-08-01
+
+    `matched_slot` is the slot the window pass chose; `assigned_slot` is
+    where the punch actually ended up after the nearest-slot fallback. A
+    punch with matched_slot=None but an assigned_slot was rescued by the
+    fallback — a sign that slot's configured times don't match reality.
+    """
+    day_date = _parse_date(day)
+    slots = _get_employee_shifts([employee]).get(employee, [])
+    windows = _build_slot_windows(slots, day_date)
+
+    raw = frappe.get_all(
+        "Employee Checkin",
+        filters={
+            "employee": employee,
+            "time": [
+                "between",
+                [
+                    datetime.combine(day_date, datetime.min.time()),
+                    datetime.combine(day_date + timedelta(days=1), datetime.max.time()),
+                ],
+            ],
+        },
+        fields=["time", "log_type"],
+        order_by="time asc",
+    )
+    punches = []
+    for c in raw:
+        t = c["time"]
+        if isinstance(t, str):
+            t = datetime.strptime(t, "%Y-%m-%d %H:%M:%S")
+        punches.append((t, c.get("log_type")))
+
+    deduped = _dedupe_checkins(punches)
+    assignment = _assign_punches(deduped, slots, day_date)
+
+    punch_report = []
+    for t, lt in deduped:
+        matched = None
+        for i, (ws_, we_) in enumerate(windows):
+            if ws_ <= t <= we_:
+                matched = i
+                break
+        assigned = next(
+            (i for i, times in enumerate(assignment) if t in times), None
+        )
+        punch_report.append({
+            "time": str(t),
+            "log_type": lt,
+            "matched_slot": matched,
+            "assigned_slot": assigned,
+            "rescued_by_fallback": matched is None and assigned is not None,
+        })
+
+    return {
+        "shift_config": _detect_shift_config(),
+        "boundary_rule": BOUNDARY_RULE,
+        "slots": [
+            {
+                "shift_type": s["shift_type"],
+                "time_in": str(s["time_in"]),
+                "time_out": str(s["time_out"]),
+                "window_start": str(windows[i][0]),
+                "window_end": str(windows[i][1]),
+            }
+            for i, s in enumerate(slots)
+        ],
+        "punches_raw": len(punches),
+        "punches": punch_report,
+        "result": [
+            (str(a) if a else None, str(b) if b else None)
+            for a, b in _match_shift_times(punches, slots, day_date)
+        ],
+    }
 
 
 def execute(filters=None):
@@ -258,6 +440,8 @@ def get_report_data(filters, day_list):
 
     emp_ids = [e["name"] for e in employees]
 
+    # Pull one extra day at each end so a late check-out that rolls past
+    # midnight (or an early pre-shift punch) is still available for matching.
     checkins_raw = frappe.get_all(
         "Employee Checkin",
         filters={
@@ -265,8 +449,8 @@ def get_report_data(filters, day_list):
             "time": [
                 "between",
                 [
-                    datetime.combine(from_date, datetime.min.time()),
-                    datetime.combine(to_date, datetime.max.time()),
+                    datetime.combine(from_date - timedelta(days=1), datetime.min.time()),
+                    datetime.combine(to_date + timedelta(days=1), datetime.max.time()),
                 ],
             ],
         },
@@ -312,10 +496,21 @@ def get_report_data(filters, day_list):
         shift_slots = emp_shifts_map.get(eid, [])
         emp_holidays = holiday_map.get(emp.get("holiday_list"), {})
         emp_leaves = leave_map.get(eid, {})
+        emp_checkins = checkins_map.get(eid, {})
 
         day_values = {}
         for d in day_list:
-            checkins = sorted(checkins_map.get(eid, {}).get(d, []), key=lambda x: x[0])
+            same_day_checkins = emp_checkins.get(d, [])
+
+            # This day's punches, plus the following morning's, so a
+            # check-out after midnight can still be matched. Next-day
+            # punches are only worth pooling when a slot actually runs
+            # overnight, otherwise they'd be dragged in by the fallback.
+            pool = list(same_day_checkins)
+            if _has_overnight_slot(shift_slots):
+                pool += emp_checkins.get(d + timedelta(days=1), [])
+            checkins = sorted(pool, key=lambda x: x[0])
+
             is_holiday = d in emp_holidays
             leave_type = emp_leaves.get(d)
             is_leave = leave_type is not None
@@ -328,8 +523,10 @@ def get_report_data(filters, day_list):
                 # Personal Attendance Report's status priority.
                 "leave": is_leave,
                 "leave_type": leave_type,
-                "holiday": (not is_leave) and is_holiday and not checkins,
-                "absent": (not is_leave) and (not is_holiday) and (status == "Absent") and not checkins,
+                # Holiday/Absent look at same-day punches only — a spillover
+                # punch from the next morning shouldn't mark the day worked.
+                "holiday": (not is_leave) and is_holiday and not same_day_checkins,
+                "absent": (not is_leave) and (not is_holiday) and (status == "Absent") and not same_day_checkins,
                 "slots": slot_times,
             }
 
@@ -343,53 +540,210 @@ def get_report_data(filters, day_list):
     return employees_data, max_shifts
 
 
+# ═══════════════════════════════════════════════════════════
+#  PUNCH MATCHING
+# ═══════════════════════════════════════════════════════════
+def _dedupe_checkins(checkins, window_minutes=PUNCH_DEDUPE_WINDOW_MINUTES):
+    """
+    Collapse repeat swipes registered within `window_minutes` of each other
+    into a single punch, keeping the earliest.
+
+    checkins: list of (datetime, log_type) tuples.
+    """
+    window = timedelta(minutes=window_minutes)
+    kept = []
+    for entry in sorted(checkins, key=lambda x: x[0]):
+        if kept and (entry[0] - kept[-1][0]) <= window:
+            continue
+        kept.append(entry)
+    return kept
+
+
+def _in_out_pair(times, slot_bounds=None):
+    """
+    Build an (in, out) tuple of time objects from a list of datetimes,
+    never returning the same value twice.
+
+    A lone punch — or a double swipe that survived deduping — is recorded
+    against one side only. Which side depends on whether it sits nearer the
+    slot's own start or its end, matching the Personal Attendance Report:
+    a single 22:29 punch in a 16:00-20:00 slot is a check-out with a
+    missing check-in, not a check-in at 22:29.
+    """
+    if not times:
+        return (None, None)
+
+    first = min(times)
+    last = max(times)
+
+    if last <= first:
+        if slot_bounds:
+            start, end = slot_bounds
+            if abs((first - end).total_seconds()) < abs((first - start).total_seconds()):
+                return (None, first.time())
+        return (first.time(), None)
+
+    return (first.time(), last.time())
+
+
+def _has_overnight_slot(shift_slots):
+    """True if any slot's time_out is at or before its time_in."""
+    return any(s["time_out"] <= s["time_in"] for s in shift_slots)
+
+
+def _slot_bounds(shift_slots, day_date):
+    """Each slot's own start/end as datetimes, overnight slots rolled forward."""
+    bounds = []
+    for slot in shift_slots:
+        start = datetime.combine(day_date, slot["time_in"])
+        end = datetime.combine(day_date, slot["time_out"])
+        if end <= start:
+            # overnight slot, e.g. 22:00 -> 07:00
+            end += timedelta(days=1)
+        bounds.append((start, end))
+    return bounds
+
+
+def _build_slot_windows(shift_slots, day_date):
+    """
+    Returns a (window_start, window_end) datetime pair per shift slot.
+
+    Windows tile the whole day with no gaps:
+
+      * the FIRST slot's window opens at midnight
+      * the LAST slot's window runs to end of day, or later if its
+        allow_check_out_after grace reaches past midnight
+      * BETWEEN two slots the boundary is the earliest moment a check-in
+        for the later slot is accepted:
+            next.time_in - next.begin_check_in_before
+        clamped so it never falls before the earlier slot's own time_out
+
+    Because the windows tile the day, a punch can't fall through the
+    cracks, and a late departure stays with the shift it belongs to
+    instead of flipping to the next one.
+    """
+    if not shift_slots:
+        return []
+
+    bounds = _slot_bounds(shift_slots, day_date)
+    day_start = datetime.combine(day_date, time_cls.min)
+    day_end = datetime.combine(day_date, time_cls.max)
+    last_idx = len(bounds) - 1
+
+    # boundaries[i] separates slot i from slot i+1
+    boundaries = []
+    for i in range(last_idx):
+        nxt_before, _ = _get_shift_type_grace(shift_slots[i + 1].get("shift_type"))
+        boundary = bounds[i + 1][0] - nxt_before
+
+        prev_end = bounds[i][1]
+        if boundary < prev_end:
+            boundary = prev_end
+
+        boundaries.append(boundary)
+
+    windows = []
+    for i in range(len(bounds)):
+        win_start = day_start if i == 0 else boundaries[i - 1]
+
+        if i == last_idx:
+            _, after = _get_shift_type_grace(shift_slots[i].get("shift_type"))
+            win_end = max(bounds[i][1] + after, day_end)
+        else:
+            # a punch exactly on the boundary is a check-in for the later slot
+            win_end = boundaries[i] - timedelta(seconds=1)
+
+        windows.append((win_start, win_end))
+
+    return windows
+
+
+def _assign_punches(checkins, shift_slots, day_date):
+    """
+    Distribute punches across slots. Returns a list of datetime lists,
+    one per slot.
+
+    Pass 1 places each punch in the slot whose window contains it.
+    Pass 2 attaches anything left over to the nearest slot by clock
+    distance, so a punch is never silently discarded because the
+    configured shift times don't line up with what people actually do.
+    """
+    per_slot = [[] for _ in shift_slots]
+    if not shift_slots:
+        return per_slot
+
+    windows = _build_slot_windows(shift_slots, day_date)
+    bounds = _slot_bounds(shift_slots, day_date)
+    leftovers = []
+
+    for t, _lt in checkins:
+        for i, (win_start, win_end) in enumerate(windows):
+            if win_start <= t <= win_end:
+                per_slot[i].append(t)
+                break
+        else:
+            # no window matched this punch
+            leftovers.append(t)
+
+    for t in leftovers:
+        best_i, best_dist = 0, None
+        for i, (start, end) in enumerate(bounds):
+            if t < start:
+                dist = (start - t).total_seconds()
+            elif t > end:
+                dist = (t - end).total_seconds()
+            else:
+                dist = 0
+            if best_dist is None or dist < best_dist:
+                best_i, best_dist = i, dist
+        per_slot[best_i].append(t)
+
+    return per_slot
+
+
 def _match_shift_times(checkins, shift_slots, day_date):
     """
-    checkins: list of (datetime, log_type) tuples, sorted by time.
+    checkins: list of (datetime, log_type) tuples.
+    Returns [(in_time, out_time), ...] aligned with shift_slots.
     """
-    # No shift slots configured for this employee (or shift-table detection
-    # failed) — don't silently drop their checkins. Show first-IN/last-OUT
-    # instead, using log_type where available.
+    # Collapse double swipes first, so a repeat punch can't become an Out
+    # at the same time as its In.
+    checkins = _dedupe_checkins(checkins)
+
+    # No shift slots configured for this employee — don't drop their
+    # checkins. Show first-IN/last-OUT instead, using log_type where
+    # available.
     if not shift_slots:
-        if not checkins:
+        same_day = [(t, lt) for (t, lt) in checkins if t.date() == day_date]
+        if not same_day:
             return []
 
-        ins = [t for t, lt in checkins if lt == "IN"]
-        outs = [t for t, lt in checkins if lt == "OUT"]
+        ins = [t for t, lt in same_day if lt == "IN"]
+        outs = [t for t, lt in same_day if lt == "OUT"]
 
         if ins or outs:
-            in_time = min(ins).time() if ins else None
-            out_time = max(outs).time() if outs else None
-            return [(in_time, out_time)]
+            in_time = min(ins) if ins else None
+            out_time = max(outs) if outs else None
+            # An Out that isn't strictly later than the In is a duplicate
+            # swipe, not a zero-length work period — keep the In only.
+            if in_time and out_time and out_time <= in_time:
+                out_time = None
+            return [(
+                in_time.time() if in_time else None,
+                out_time.time() if out_time else None,
+            )]
 
         # log_type missing/unrecognized — fall back to earliest/latest punch
-        times = [t for t, _ in checkins]
-        if len(times) == 1:
-            return [(min(times).time(), None)]
-        return [(min(times).time(), max(times).time())]
+        return [_in_out_pair([t for t, _ in same_day])]
 
-    remaining = list(checkins)
-    results = []
-
-    for slot in shift_slots:
-        window_start = datetime.combine(day_date, slot["time_in"])
-        window_end = datetime.combine(day_date, slot["time_out"])
-        if window_end <= window_start:
-            window_end += timedelta(days=1)
-
-        buffer = timedelta(hours=SHIFT_MATCH_BUFFER_HOURS)
-        matched = [(t, lt) for (t, lt) in remaining if window_start - buffer <= t <= window_end + buffer]
-        remaining = [x for x in remaining if x not in matched]
-
-        if matched:
-            times = [t for t, _ in matched]
-            results.append((min(times).time(), max(times).time()))
-        else:
-            results.append((None, None))
-
-    return results
+    per_slot = _assign_punches(checkins, shift_slots, day_date)
+    bounds = _slot_bounds(shift_slots, day_date)
+    return [_in_out_pair(times, bounds[i]) for i, times in enumerate(per_slot)]
 
 
+# ═══════════════════════════════════════════════════════════
+#  LOOKUPS
+# ═══════════════════════════════════════════════════════════
 def _get_holiday_map(holiday_list_names):
     if not holiday_list_names:
         return {}

@@ -1,0 +1,70 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-07-20 12:23:42.914231",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "date",
+  "section",
+  "key_activities",
+  "contact_person",
+  "inductee_signature"
+ ],
+ "fields": [
+  {
+   "default": "Today",
+   "fieldname": "date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Date",
+   "reqd": 1
+  },
+  {
+   "columns": 1,
+   "fieldname": "section",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "SECTION",
+   "options": "Department",
+   "reqd": 1
+  },
+  {
+   "fieldname": "key_activities",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": " KEY ACTIVITIES",
+   "reqd": 1
+  },
+  {
+   "columns": 1,
+   "fieldname": "contact_person",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "CONTACT PERSON",
+   "reqd": 1
+  },
+  {
+   "default": "________",
+   "fieldname": "inductee_signature",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "INDUCTEE SIGNATURE",
+   "read_only": 1,
+   "reqd": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-07-20 12:25:38.794180",
+ "modified_by": "Administrator",
+ "module": "Rasiin Hr",
+ "name": "INDUCTION PROGRAM ITEM",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

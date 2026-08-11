@@ -1,0 +1,206 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "JOB-.#####",
+ "creation": "2026-07-20 12:04:27.285612",
+ "default_view": "List",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "job_title",
+  "job_grade",
+  "department",
+  "monthly_wage",
+  "column_break_dvfab",
+  "responsible_to",
+  "accountable_to",
+  "employment_type",
+  "working_hours_week",
+  "job_description_section",
+  "purpose_of_the_role",
+  "column_break_yub5k",
+  "working_conditions",
+  "section_break_zllro",
+  "key_responsibilities",
+  "section_break_uwyrv",
+  "kpis",
+  "section_break_3vt46",
+  "person_specification",
+  "section_break_0mokr",
+  "technical",
+  "soft_skills",
+  "column_break_g7zrc",
+  "leadership"
+ ],
+ "fields": [
+  {
+   "fieldname": "job_title",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Job Title",
+   "reqd": 1
+  },
+  {
+   "fieldname": "job_grade",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Job Grade",
+   "reqd": 1
+  },
+  {
+   "fieldname": "department",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Department",
+   "options": "Department",
+   "reqd": 1
+  },
+  {
+   "fieldname": "monthly_wage",
+   "fieldtype": "Data",
+   "label": "Monthly Wage"
+  },
+  {
+   "fieldname": "column_break_dvfab",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "responsible_to",
+   "fieldtype": "Data",
+   "label": "Responsible to"
+  },
+  {
+   "fieldname": "accountable_to",
+   "fieldtype": "Data",
+   "label": "Accountable to"
+  },
+  {
+   "fieldname": "employment_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Employment Type",
+   "options": "\nFull Time\nPart Time",
+   "reqd": 1
+  },
+  {
+   "fieldname": "working_hours_week",
+   "fieldtype": "Data",
+   "label": "Working Hours Week",
+   "reqd": 1
+  },
+  {
+   "fieldname": "job_description_section",
+   "fieldtype": "Section Break",
+   "label": "Job Description"
+  },
+  {
+   "fieldname": "purpose_of_the_role",
+   "fieldtype": "Data",
+   "label": "Purpose of the Role"
+  },
+  {
+   "fieldname": "column_break_yub5k",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "working_conditions",
+   "fieldtype": "Data",
+   "label": "Working Conditions"
+  },
+  {
+   "fieldname": "section_break_zllro",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "key_responsibilities",
+   "fieldtype": "Table",
+   "label": "Key Responsibilities",
+   "options": "Key Responsibilities",
+   "reqd": 1
+  },
+  {
+   "fieldname": "section_break_uwyrv",
+   "fieldtype": "Section Break",
+   "label": "KPIs"
+  },
+  {
+   "fieldname": "kpis",
+   "fieldtype": "Table",
+   "options": "KPIs",
+   "reqd": 1
+  },
+  {
+   "fieldname": "section_break_3vt46",
+   "fieldtype": "Section Break",
+   "label": "Person Specification"
+  },
+  {
+   "fieldname": "person_specification",
+   "fieldtype": "Table",
+   "options": "Person Specification",
+   "reqd": 1
+  },
+  {
+   "fieldname": "section_break_0mokr",
+   "fieldtype": "Section Break",
+   "label": "Skills & Competencies"
+  },
+  {
+   "fieldname": "technical",
+   "fieldtype": "Data",
+   "label": "Technical"
+  },
+  {
+   "fieldname": "soft_skills",
+   "fieldtype": "Data",
+   "label": "Soft Skills"
+  },
+  {
+   "fieldname": "column_break_g7zrc",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "leadership",
+   "fieldtype": "Data",
+   "label": "Leadership"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-07-20 12:07:20.523655",
+ "modified_by": "Administrator",
+ "module": "Rasiin Hr",
+ "name": "Job Profile Template",
+ "naming_rule": "Expression (old style)",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "All",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
