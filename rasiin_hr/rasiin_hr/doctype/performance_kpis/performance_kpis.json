@@ -95,13 +95,13 @@
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Department",
-   "options": "Department",
+   "options": "Performance Department",
    "reqd": 1
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-07-20 19:32:03.475028",
+ "modified": "2026-08-21 21:02:50.535764",
  "modified_by": "Administrator",
  "module": "Rasiin Hr",
  "name": "Performance KPIs",

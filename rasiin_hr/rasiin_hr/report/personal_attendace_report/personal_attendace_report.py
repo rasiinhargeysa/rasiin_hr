@@ -835,16 +835,19 @@ def calendar_totals(rows):
 	with a missing check-out still counts as worked — it shows up in
 	`less_hours` rather than being dropped from the day count.
 
-	Late-in is accumulated from the raw `_late_seconds` on each row and
-	formatted once at the end, since the displayed `late_in_minutes` is a
-	string like "1h 16m" and cannot be summed.
+	Actual hours, Late-in, Less hours, and Overtime are all accumulated from
+	their raw `_actual_seconds` / `_late_seconds` / `_less_seconds` /
+	`_overtime_seconds` values on each row, since the displayed values are
+	duration strings like "7h 30m" and can't be summed directly. They are
+	formatted once at the end. `mandatory_hours` stays a plain decimal total,
+	unchanged.
 	"""
 	totals = {
 		"mandatory_hours": 0.0,
-		"actual_hours": 0.0,
+		"actual_hours": 0,
 		"late_in_minutes": 0,
-		"less_hours": 0.0,
-		"overtime": 0.0,
+		"less_hours": 0,
+		"overtime": 0,
 		"worked_days": 0,
 		"absent_days": 0,
 		"leave_days": 0,
@@ -853,10 +856,10 @@ def calendar_totals(rows):
 
 	for r in rows:
 		totals["mandatory_hours"] += r.get("mandatory_hours") or 0
-		totals["actual_hours"] += r.get("actual_hours") or 0
+		totals["actual_hours"] += r.get("_actual_seconds") or 0
 		totals["late_in_minutes"] += r.get("_late_seconds") or 0
-		totals["less_hours"] += r.get("less_hours") or 0
-		totals["overtime"] += r.get("overtime") or 0
+		totals["less_hours"] += r.get("_less_seconds") or 0
+		totals["overtime"] += r.get("_overtime_seconds") or 0
 
 		day_type = r.get("day_type")
 		if day_type == "absent":
@@ -868,17 +871,23 @@ def calendar_totals(rows):
 		elif r.get("am_in") or r.get("am_out") or r.get("pm_in") or r.get("pm_out"):
 			totals["worked_days"] += 1
 
-	for key in ("mandatory_hours", "actual_hours", "less_hours", "overtime"):
-		totals[key] = round(totals[key], 2)
-
+	totals["mandatory_hours"] = round(totals["mandatory_hours"], 2)
+	totals["actual_hours"] = format_hours(totals["actual_hours"])
 	totals["late_in_minutes"] = format_hours(totals["late_in_minutes"])
+	totals["less_hours"] = format_hours(totals["less_hours"])
+	totals["overtime"] = format_hours(totals["overtime"])
 
 	return totals
 
 
 def get_calendar_rows(employee, from_date, to_date):
 	"""One row per calendar day for a single employee, with the fields
-	needed by the monthly calendar sheet."""
+	needed by the monthly calendar sheet.
+
+	Note: `actual_hours`, `less_hours`, and `overtime` are formatted duration
+	strings (e.g. "7h 30m"), same convention as `late_in_minutes`.
+	`mandatory_hours` stays a plain decimal (e.g. 8.0), unchanged.
+	"""
 	from_date = getdate(from_date)
 	to_date = getdate(to_date)
 	employee_name = frappe.db.get_value("Employee", employee, "employee_name")
@@ -888,9 +897,16 @@ def get_calendar_rows(employee, from_date, to_date):
 	while current <= to_date:
 		day_row = get_personal_attendance_for_date(employee, employee_name, current)
 
-		mandatory_hours = day_row.get("expected_hours") or 0
-		actual_hours = day_row.get("worked_hours") or 0
+		mandatory_hours = day_row.get("expected_hours") or 0  # unchanged: decimal hours
 		late_seconds = _late_in_seconds(day_row)
+
+		# Raw seconds (already computed upstream in get_personal_attendance_for_date)
+		# rather than the rounded decimal hours, so Actual/Less/Overtime can be
+		# formatted as durations the same way Late-in already is.
+		actual_seconds = day_row.get("_worked_seconds") or 0
+		mandatory_seconds = day_row.get("_expected_seconds") or 0
+		less_seconds = max(mandatory_seconds - actual_seconds, 0)
+		overtime_seconds = max(actual_seconds - mandatory_seconds, 0)
 
 		code = ""
 		day_type = ""  # "" | "absent" | "leave" | "holiday" -- for downstream styling
@@ -911,13 +927,16 @@ def get_calendar_rows(employee, from_date, to_date):
 			"pm_in": day_row.get("pm_in") or "",
 			"pm_out": day_row.get("pm_out") or "",
 			"mandatory_hours": mandatory_hours,
-			"actual_hours": actual_hours,
-			# displayed as a duration, e.g. "1h 16m"
+			# displayed as durations, e.g. "7h 30m"
+			"actual_hours": format_hours(actual_seconds),
 			"late_in_minutes": format_hours(late_seconds),
-			# raw value kept so calendar_totals() can sum it
+			"less_hours": format_hours(less_seconds),
+			"overtime": format_hours(overtime_seconds),
+			# raw values kept so calendar_totals() can sum them
 			"_late_seconds": late_seconds,
-			"less_hours": _less_hours(mandatory_hours, actual_hours),
-			"overtime": _overtime_hours(mandatory_hours, actual_hours),
+			"_actual_seconds": actual_seconds,
+			"_less_seconds": less_seconds,
+			"_overtime_seconds": overtime_seconds,
 			"code": code,
 			"day_type": day_type,
 		})
@@ -940,17 +959,19 @@ def get_personal_attendance_calendar(employee, from_date, to_date):
 	      {"date": "2026-07-01", "date_label": "1-Jul",
 	       "am_in": "08:40", "am_out": "11:20",
 	       "pm_in": "15:50", "pm_out": "20:45", "mandatory_hours": 8.0,
-	       "actual_hours": 8.0, "late_in_minutes": "40m", "less_hours": 0,
-	       "overtime": 1.0, "code": ""},
+	       "actual_hours": "8h", "late_in_minutes": "40m", "less_hours": "",
+	       "overtime": "1h", "code": ""},
 	      ...
 	    ],
-	    "totals": {"mandatory_hours": 176.0, "actual_hours": 168.5,
-	               "late_in_minutes": "1h 3m", "less_hours": 7.5, "overtime": 12.3,
+	    "totals": {"mandatory_hours": 176.0, "actual_hours": "168h 30m",
+	               "late_in_minutes": "1h 3m", "less_hours": "7h 30m", "overtime": "12h 18m",
 	               "worked_days": 22, "absent_days": 1,
 	               "leave_days": 0, "holiday_days": 5}
 	  }
 
-	Note: `late_in_minutes` is a formatted duration string, not a number.
+	Note: `actual_hours`, `late_in_minutes`, `less_hours`, and `overtime`
+	are all formatted duration strings, not numbers. `mandatory_hours`
+	stays a plain decimal.
 	"""
 	employee_doc = frappe.get_cached_doc("Employee", employee)
 	rows, employee_name = get_calendar_rows(employee, from_date, to_date)
