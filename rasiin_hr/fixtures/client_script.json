@@ -1,1 +1,24 @@
-[]
+[
+ {
+  "docstatus": 0,
+  "doctype": "Client Script",
+  "dt": "Employee Warning",
+  "enabled": 1,
+  "modified": "2026-07-19 11:56:18.314253",
+  "module": "Rasiin Hr",
+  "name": "Employee Warning",
+  "script": "frappe.ui.form.on(\"Employee Warning\", {\r\n    warning_type: function(frm) {\r\n        const templates = {\r\n            \"Verbal Warning\":\r\n`<p>It was observed that you <b>[describe misconduct/performance issue clearly, e.g., repeated lateness, failure to follow safety instructions]</b>. This matter was discussed with you verbally by your supervisor <b>[name]</b> in the presence of <b>[witness/HR representative]</b>.</p>\r\n<p>You were informed that this behavior violates company policy and disrupts workplace discipline. The reason for this warning is to ensure you understand the seriousness of the issue and to give you the opportunity to correct it.</p>\r\n<p>This verbal warning has been documented in your personnel file for record-keeping purposes.</p>`,\r\n\r\n            \"First Written Warning\":\r\n`<p>You engaged in <b>[specific misconduct, e.g., failure to complete assigned tasks, inappropriate behavior toward colleagues]</b>. This incident was investigated by the Disciplinary Committee on <b>[date]</b>, where evidence and witness statements were reviewed.</p>\r\n<p>The Committee concluded that your actions violated company policy and affected workplace performance. You were given the opportunity to explain your side, but the reasons provided did not justify the misconduct.</p>\r\n<p>This letter serves as a <b>formal written warning</b>. You are required to take immediate corrective action. Any recurrence of this behavior will result in a <b>final warning</b> or termination.</p>`,\r\n\r\n            \"Final Written Warning\":\r\n`<p>You were again involved in <b>[describe misconduct, e.g., repeated insubordination, violation of safety rules]</b> despite previous warnings issued on <b>[dates of prior warnings]</b>.</p>\r\n<p>The matter was reviewed by the Disciplinary Committee on <b>[date]</b>, chaired by <b>[name]</b>, where the incident was thoroughly investigated. The Committee determined that your repeated misconduct demonstrates a failure to comply with company policy and instructions.</p>\r\n<p>This letter serves as a <b>final written warning</b>. Any further misconduct or failure to improve will result in <b>termination of your employment</b> in accordance with Somaliland Labour Laws.</p>`,\r\n\r\n            \"Termination\":\r\n`<p>You committed <b>[describe misconduct, e.g., theft of company property, harassment of colleagues, repeated violation of attendance policy]</b>. This matter was investigated by the Disciplinary Committee on <b>[date]</b>, chaired by <b>[name]</b>, where evidence and witness testimonies were reviewed.</p>\r\n<p>The Committee concluded that your actions constitute <b>gross misconduct</b> under company policy and Somaliland Labour Laws. You were given the opportunity to respond, but the reasons provided did not justify your actions.</p>\r\n<p>Accordingly, your employment is terminated effective <b>[termination date]</b>. You will receive your final settlement, including any outstanding entitlements, in compliance with statutory requirements.</p>`\r\n        };\r\n\r\n        if (templates[frm.doc.warning_type]) {\r\n            frm.set_value(\"description\", templates[frm.doc.warning_type]);\r\n        }\r\n    }\r\n});",
+  "view": "Form"
+ },
+ {
+  "docstatus": 0,
+  "doctype": "Client Script",
+  "dt": "Performance KPIs",
+  "enabled": 1,
+  "modified": "2026-07-20 09:58:53.139327",
+  "module": "Rasiin Hr",
+  "name": "Performance KPIs",
+  "script": "frappe.ui.form.on('Performance KPI Items', {\r\n    actual: function(frm, cdt, cdn) {\r\n        calculate_score(frm, cdt, cdn);\r\n    },\r\n    target: function(frm, cdt, cdn) {\r\n        calculate_score(frm, cdt, cdn);\r\n    },\r\n    weight_of_kpis: function(frm, cdt, cdn) {\r\n        calculate_final(frm, cdt, cdn);\r\n    },\r\n    performance_kpi_items_remove: function(frm) {\r\n        calculate_total(frm);\r\n    }\r\n});\r\n\r\nfrappe.ui.form.on('Performance KPIs', {\r\n    refresh: function(frm) {\r\n        calculate_total(frm);\r\n    }\r\n});\r\n\r\nfunction calculate_score(frm, cdt, cdn) {\r\n    let row = locals[cdt][cdn];\r\n    if (row.target) {\r\n        row.score = flt((row.actual / row.target) * 100, 2);\r\n    } else {\r\n        row.score = 0;\r\n    }\r\n    calculate_final(frm, cdt, cdn);\r\n}\r\n\r\nfunction calculate_final(frm, cdt, cdn) {\r\n    let row = locals[cdt][cdn];\r\n    row.final = flt((row.score * row.weight_of_kpis) / 100, 2);\r\n    frm.refresh_field('performance_kpi_items');\r\n    calculate_total(frm);\r\n}\r\n\r\nfunction calculate_total(frm) {\r\n    let total = 0;\r\n    (frm.doc.performance_kpi_items || []).forEach(row => {\r\n        total += flt(row.final);\r\n    });\r\n    frm.set_value('total_final_score', total);\r\n}",
+  "view": "Form"
+ }
+]

@@ -1,0 +1,139 @@
+{
+ "actions": [],
+ "allow_guest_to_view": 1,
+ "allow_rename": 1,
+ "autoname": "HR-POL-.#####",
+ "creation": "2026-10-17 09:57:31.315647",
+ "default_view": "List",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "title",
+  "policy_category",
+  "column_break_wod49",
+  "date",
+  "user",
+  "username",
+  "section_break_y6pwy",
+  "content",
+  "section_break_xzowp",
+  "attachment",
+  "column_break_bpppr",
+  "published"
+ ],
+ "fields": [
+  {
+   "fieldname": "title",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Title",
+   "reqd": 1
+  },
+  {
+   "fieldname": "policy_category",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Policy Category",
+   "options": "Policy Category",
+   "reqd": 1
+  },
+  {
+   "default": "Today",
+   "fieldname": "date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Date",
+   "reqd": 1
+  },
+  {
+   "default": "User",
+   "fieldname": "user",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "in_list_view": 1,
+   "label": "User",
+   "options": "User",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "user.full_name",
+   "fieldname": "username",
+   "fieldtype": "Data",
+   "label": "Username",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_y6pwy",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "content",
+   "fieldtype": "Text Editor",
+   "label": "Content"
+  },
+  {
+   "fieldname": "section_break_xzowp",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "column_break_bpppr",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "1",
+   "fieldname": "published",
+   "fieldtype": "Check",
+   "label": "Published"
+  },
+  {
+   "fieldname": "column_break_wod49",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "Optional PDF copy",
+   "fieldname": "attachment",
+   "fieldtype": "Attach",
+   "label": "Atachment"
+  }
+ ],
+ "links": [],
+ "modified": "2026-10-20 18:50:08.298234",
+ "modified_by": "Administrator",
+ "module": "Rasiin Hr",
+ "name": "HR Policy",
+ "naming_rule": "Expression (old style)",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "HR Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "route": "policies",
+ "search_fields": "title,policy_category",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

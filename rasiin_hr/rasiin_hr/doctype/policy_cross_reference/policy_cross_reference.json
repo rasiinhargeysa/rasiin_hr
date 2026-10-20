@@ -1,0 +1,97 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "PCR-.#####",
+ "creation": "2026-10-17 13:41:20.320915",
+ "default_view": "List",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "source_policy",
+  "target_policy",
+  "column_break_6ttgb",
+  "source_heading",
+  "target_heading"
+ ],
+ "fields": [
+  {
+   "fieldname": "source_policy",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Source Policy",
+   "options": "HR Policy",
+   "reqd": 1
+  },
+  {
+   "fieldname": "source_heading",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Source Heading",
+   "reqd": 1
+  },
+  {
+   "fieldname": "target_policy",
+   "fieldtype": "Link",
+   "label": "Target  Policy",
+   "options": "HR Policy",
+   "reqd": 1
+  },
+  {
+   "fieldname": "target_heading",
+   "fieldtype": "Data",
+   "label": "Target Heading",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_6ttgb",
+   "fieldtype": "Column Break"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-10-17 13:41:50.745309",
+ "modified_by": "Administrator",
+ "module": "Rasiin Hr",
+ "name": "Policy Cross Reference",
+ "naming_rule": "Expression (old style)",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "HR Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "All",
+   "share": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
