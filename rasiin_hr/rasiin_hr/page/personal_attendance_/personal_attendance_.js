@@ -117,6 +117,8 @@ class PersonalAttendanceCalendar {
 				font-weight: 600;
 				text-align: left;
 			}
+			.attendance-grid td.pa-date.pa-holiday-worked { background: #FFF4CE; color: #B45309; }
+			.attendance-grid td.pa-date.pa-leave-worked { background: #DCE6F1; color: #2563eb; }
 			.attendance-grid td.pa-absent { background: #FDE9E9; color: #e11d48; font-weight: 600; }
 			.attendance-grid td.pa-leave { background: #DCE6F1; color: #2563eb; font-weight: 600; }
 			.attendance-grid tfoot td {
@@ -201,16 +203,25 @@ class PersonalAttendanceCalendar {
 				<th>Date</th>
 				<th>In</th><th>Out</th><th>In</th><th>Out</th>
 				<th>Mandatory<br>Hours</th>
-				<th>Actual hours<br>worked</th>
-				<th>Late -in<br>mins</th>
-				<th>Less Hours<br>worked</th>
+				<th>Actual hours</th>
+				<th>Early-in</th>
+				<th>Late-in</th>
+				<th>Less Hours</th>
 				<th>Overtime</th>
 			</tr>
 		`;
 
 		let body = "";
 		result.rows.forEach((row) => {
-			body += `<tr><td class="pa-date">${frappe.utils.escape_html(row.date_label)}</td>`;
+			const date_cls = row.holiday_worked
+				? "pa-date pa-holiday-worked"
+				: row.leave_worked
+				? "pa-date pa-leave-worked"
+				: "pa-date";
+			const date_text =
+				frappe.utils.escape_html(row.date_label) +
+				(row.holiday_worked ? " (H)" : row.leave_worked ? " (LV)" : "");
+			body += `<tr><td class="${date_cls}">${date_text}</td>`;
 
 			if (row.code) {
 				const cls = row.code === "A" || row.code === "UA" ? "pa-absent" : "pa-leave";
@@ -227,6 +238,7 @@ class PersonalAttendanceCalendar {
 			body += `
 				<td>${row.mandatory_hours || ""}</td>
 				<td>${row.actual_hours || ""}</td>
+				<td>${row.early_in_minutes || ""}</td>
 				<td>${row.late_in_minutes || ""}</td>
 				<td>${row.less_hours || ""}</td>
 				<td>${row.overtime || ""}</td>
@@ -234,7 +246,7 @@ class PersonalAttendanceCalendar {
 		});
 
 		if (!result.rows.length) {
-			body = `<tr><td colspan="10">No records found</td></tr>`;
+			body = `<tr><td colspan="11">No records found</td></tr>`;
 		}
 
 		const t = result.totals || {};
@@ -244,6 +256,7 @@ class PersonalAttendanceCalendar {
 					<td class="pa-total-label" colspan="5">Total</td>
 					<td>${t.mandatory_hours || ""}</td>
 					<td>${t.actual_hours || ""}</td>
+					<td>${t.early_in_minutes || ""}</td>
 					<td>${t.late_in_minutes || ""}</td>
 					<td>${t.less_hours || ""}</td>
 					<td>${t.overtime || ""}</td>
@@ -263,6 +276,8 @@ class PersonalAttendanceCalendar {
 				<span>Absent: ${t.absent_days || 0}</span>
 				<span>Leave: ${t.leave_days || 0}</span>
 				<span>Holiday: ${t.holiday_days || 0}</span>
+				<span>Worked on holiday: ${t.holiday_worked_days || 0}${t.holiday_worked_hours ? ` (${t.holiday_worked_hours})` : ""}</span>
+				<span>Worked on leave: ${t.leave_worked_days || 0}${t.leave_worked_hours ? ` (${t.leave_worked_hours})` : ""}</span>
 			</div>
 		`;
 	}
@@ -275,6 +290,8 @@ class PersonalAttendanceCalendar {
 				<span>C - Compassionate leave</span>
 				<span>P/M - Maternity</span>
 				<span>UA - Unjustified Absence</span>
+				<span>(H) - Worked on holiday</span>
+				<span>(LV) - On leave, attended a shift</span>
 			</div>
 		`;
 	}
@@ -295,6 +312,11 @@ class PersonalAttendanceCalendar {
 		}
 
 		const period = `${this.last_filters.from_date} to ${this.last_filters.to_date}`;
+
+		// Stretch rows so the report fills the A4 page: fewer days -> taller rows.
+		// (n days + header row + total row share ~200mm of height.)
+		const n_rows = (this.last_result.rows || []).length;
+		const row_mm = Math.max(4.5, Math.min(8, 200 / (n_rows + 2))).toFixed(2);
 		const bodyHtml = `
 			${this.header_block_html(this.last_result)}
 			${this.table_html(this.last_result)}
@@ -337,13 +359,31 @@ class PersonalAttendanceCalendar {
 						-webkit-print-color-adjust: exact; print-color-adjust: exact;
 					}
 					table.attendance-grid tfoot td.pa-total-label { text-align: right; }
-					td.pa-absent { background: #FDE9E9 !important; color: #e11d48; -webkit-print-color-adjust: exact; }
-					td.pa-leave { background: #DCE6F1 !important; color: #2563eb; -webkit-print-color-adjust: exact; }
+					td.pa-date { text-align: left; font-weight: 600; }
+					td.pa-date.pa-holiday-worked { background: #FFF4CE !important; color: #B45309; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+					td.pa-date.pa-leave-worked { background: #DCE6F1 !important; color: #2563eb; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+					td.pa-absent { background: #FDE9E9 !important; color: #e11d48; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+					td.pa-leave { background: #DCE6F1 !important; color: #2563eb; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 					.pa-summary { margin-top: 10px; font-size: 12px; font-weight: 600; display: flex; gap: 24px; flex-wrap: wrap; }
 					.pa-legend { margin-top: 12px; font-size: 12px; display: flex; gap: 24px; flex-wrap: wrap; }
 					.pa-signatures { display: flex; justify-content: space-between; margin-top: 60px; page-break-inside: avoid; }
 					.pa-signature-block { width: 30%; text-align: center; }
 					.pa-signature-line { border-top: 1px solid #333; margin-top: 40px; padding-top: 6px; font-size: 12px; font-weight: 600; }
+
+					/* --- fill one A4 page --- */
+					@page { size: A4 portrait; margin: 8mm; }
+					body { padding: 0; font-size: 12px; }
+					h2 { font-size: 18px; margin: 0; }
+					.period { font-size: 12px; margin-bottom: 10px; }
+					.pa-header-block { margin-bottom: 10px; }
+					.pa-header-label, .pa-header-value { padding: 4px 8px; font-size: 11.5px; }
+					table.attendance-grid th { padding: 0 4px; font-size: 10.5px; }
+					table.attendance-grid td { padding: 0 4px; font-size: 11.5px; white-space: nowrap; }
+					table.attendance-grid th, table.attendance-grid td { height: ${row_mm}mm; }
+					.pa-summary { margin-top: 10px; font-size: 11.5px; gap: 16px; }
+					.pa-legend { margin-top: 8px; font-size: 11px; gap: 16px; }
+					.pa-signatures { margin-top: 28px; }
+					.pa-signature-line { margin-top: 28px; font-size: 11.5px; }
 				</style>
 			</head>
 			<body>

@@ -1,0 +1,162 @@
+{
+ "actions": [],
+ "allow_import": 1,
+ "autoname": "OVT-.#####",
+ "creation": "2026-11-05 09:55:04.012306",
+ "default_view": "List",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "employee",
+  "employee_name",
+  "department",
+  "column_break_ecebv",
+  "date",
+  "salary_component",
+  "section_break_t3z5t",
+  "overtime_child",
+  "section_break_6khlj",
+  "a",
+  "column_break_xvdop",
+  "total",
+  "additional_salary",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "employee",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Employee",
+   "options": "Employee",
+   "reqd": 1,
+   "search_index": 1
+  },
+  {
+   "fetch_from": "employee.employee_name",
+   "fieldname": "employee_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Employee Name",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "employee.department",
+   "fieldname": "department",
+   "fieldtype": "Link",
+   "label": "Department",
+   "options": "Department",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_ecebv",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "Today",
+   "fieldname": "date",
+   "fieldtype": "Date",
+   "label": "Date"
+  },
+  {
+   "fieldname": "section_break_t3z5t",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "overtime_child",
+   "fieldtype": "Table",
+   "label": "Overtime Child",
+   "options": "Overtime Child",
+   "reqd": 1
+  },
+  {
+   "fieldname": "section_break_6khlj",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "a",
+   "fieldtype": "Data",
+   "label": "a",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_xvdop",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "total",
+   "fieldtype": "Currency",
+   "label": "Total",
+   "read_only": 1
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Overtime",
+   "print_hide": 1,
+   "read_only": 1
+  },
+  {
+   "default": "Overtime",
+   "fieldname": "salary_component",
+   "fieldtype": "Link",
+   "label": "Salary Component",
+   "options": "Salary Component",
+   "read_only": 1
+  },
+  {
+   "fieldname": "additional_salary",
+   "fieldtype": "Data",
+   "label": "Additional Salary",
+   "read_only": 1
+  }
+ ],
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2026-11-05 12:46:06.168134",
+ "modified_by": "Administrator",
+ "module": "Rasiin Hr",
+ "name": "Overtime",
+ "naming_rule": "Expression (old style)",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "amend": 1,
+   "cancel": 1,
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "HR User",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  }
+ ],
+ "search_fields": "employee_name",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "employee_name",
+ "track_changes": 1
+}

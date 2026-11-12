@@ -142,6 +142,8 @@ def get_conditions(filters, company_currency):
 		conditions += " and ss.employee = %(employee)s"
 	if filters.get("currency") and filters.get("currency") != company_currency:
 		conditions += " and ss.currency = %(currency)s"
+	if filters.get("branch"):
+		conditions += " and emp.branch = %(branch)s"
 
 	return conditions, filters
 

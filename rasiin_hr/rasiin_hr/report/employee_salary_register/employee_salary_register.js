@@ -36,13 +36,21 @@ frappe.query_reports["Employee Salary Register"] = {
 			"width": "100px"
 		},
 		{
+			"fieldname":"branch",
+			"label": __("Branch"),
+			"fieldtype": "Link",
+			"options": "Branch",
+			"width": "100px"
+		},
+		{
 			"fieldname":"company",
 			"label": __("Company"),
 			"fieldtype": "Link",
 			"options": "Company",
 			"default": frappe.defaults.get_user_default("Company"),
 			"width": "100px",
-			"reqd": 1
+			"reqd": 1,
+			"hidden": 1
 		},
 		{
 			"fieldname":"docstatus",

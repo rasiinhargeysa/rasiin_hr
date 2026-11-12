@@ -301,7 +301,7 @@ def seconds_to_hours(seconds):
 # Core per-employee, per-date computation
 # ---------------------------------------------------------------------------
 
-def get_personal_attendance_for_date(em_id, employee_name, att_date, worked_on_holiday=False):
+def get_personal_attendance_for_date(em_id, employee_name, att_date, worked_on_holiday=False, worked_on_leave=False):
 	department = frappe.db.get_value("Employee", em_id, "department")
 	slots = get_employee_slots(em_id)
 
@@ -376,6 +376,15 @@ def get_personal_attendance_for_date(em_id, employee_name, att_date, worked_on_h
 	# zero on holiday / leave days (no work expected).
 	expected_seconds = sum((s["duration"].total_seconds() for s in slots), 0)
 
+	# Future dates: nothing is due yet, so no mandatory/less hours and no "Absent".
+	if att_date > getdate():
+		expected_seconds = 0
+
+	# Worked on a holiday: nothing was expected, so every worked hour is extra.
+	# (Leave takes priority over holiday, handled separately below.)
+	if on_holiday and not on_leave and punches and worked_on_holiday:
+		expected_seconds = 0
+
 	row = {
 		"employee": em_id,
 		"employee_name": employee_name,
@@ -391,20 +400,27 @@ def get_personal_attendance_for_date(em_id, employee_name, att_date, worked_on_h
 		"difference": None,
 		"status": "",
 		"holiday": "",
+		"leave_worked": "",
 		"leave_type": leave_type,
 		"_worked_seconds": 0,
 		"_expected_seconds": 0,
 		"_first_in": None,
+		"_first_slot_start": None,
 		"_slots": slots,
 	}
 
 	# --- Holiday / Leave precedence ---------------------------------------------
 	if on_leave:
-		row["status"] = "On Leave"
-		row["expected_hours"] = None
-		return row
-
-	if on_holiday:
+		if punches and worked_on_leave:
+			# On leave but came in for a shift: fall through so the punches
+			# are matched to slots and hours are calculated for that shift.
+			row["status"] = "Present"
+			row["leave_worked"] = "Leave"
+		else:
+			row["status"] = "On Leave"
+			row["expected_hours"] = None
+			return row
+	elif on_holiday:
 		if punches and worked_on_holiday:
 			row["status"] = "Present"
 			row["holiday"] = "Holiday"
@@ -417,7 +433,7 @@ def get_personal_attendance_for_date(em_id, employee_name, att_date, worked_on_h
 		if punches:
 			row["status"] = "Present"
 		elif not on_holiday:
-			row["status"] = "Absent" if att_date != getdate() else ""
+			row["status"] = "Absent" if att_date < getdate() else ""
 		return row
 
 	# --- Slot matching / hours ---------------------------------------------------
@@ -425,6 +441,7 @@ def get_personal_attendance_for_date(em_id, employee_name, att_date, worked_on_h
 	complete_slots = 0
 	expected_slots = len(slots)
 	filled_slots = 0
+	filled_duration = 0  # seconds of the shift(s) the employee actually attended
 
 	if has_two_date_shift:
 		expected_slots = 1
@@ -443,6 +460,9 @@ def get_personal_attendance_for_date(em_id, employee_name, att_date, worked_on_h
 			row["_first_in"] = first_in
 
 			filled_slots = 1
+			filled_duration = sum(
+				s["duration"].total_seconds() for s in slots if s.get("two_date_shift")
+			)
 			if last_out is not None:
 				total_seconds_worked = (last_out - first_in).total_seconds()
 				complete_slots = 1
@@ -457,6 +477,7 @@ def get_personal_attendance_for_date(em_id, employee_name, att_date, worked_on_h
 
 			if c_in is not None or c_out is not None:
 				filled_slots += 1
+				filled_duration += slot["duration"].total_seconds()
 
 			if c_in is not None and c_out is not None:
 				total_seconds_worked += (c_out - c_in).total_seconds()
@@ -469,6 +490,16 @@ def get_personal_attendance_for_date(em_id, employee_name, att_date, worked_on_h
 			elif idx == 1:
 				row["pm_in"] = format_td(c_in)
 				row["pm_out"] = format_td(c_out)
+
+			# On a leave day the first attended shift may be the 2nd one:
+			# measure early/late against that shift's start.
+			if row["leave_worked"] and row["_first_in"] is None and c_in is not None:
+				row["_first_in"] = c_in
+				row["_first_slot_start"] = slot["time_in"]
+
+	# Leave day with punches: only the shift(s) attended are expected.
+	if row["leave_worked"]:
+		expected_seconds = filled_duration
 
 	row["worked_hours"] = seconds_to_hours(total_seconds_worked) if total_seconds_worked else None
 	row["expected_hours"] = seconds_to_hours(expected_seconds) if expected_seconds else None
@@ -483,7 +514,7 @@ def get_personal_attendance_for_date(em_id, employee_name, att_date, worked_on_h
 	if row["status"]:
 		pass
 	elif filled_slots == 0:
-		row["status"] = "Absent" if att_date != getdate() else ""
+		row["status"] = "Absent" if att_date < getdate() else ""
 	elif complete_slots == expected_slots:
 		row["status"] = "Present"
 	else:
@@ -551,6 +582,59 @@ def debug_slot_windows(employee, day):
 			{"in": format_td(e["check_in"]), "out": format_td(e["check_out"])}
 			for e in assigned
 		],
+	}
+
+
+@frappe.whitelist()
+def debug_calendar_day(employee, day):
+	"""
+	Explains why a day is (or is not) flagged "(LV)" / "(H)".
+
+	  /api/method/<app>.<...>.debug_calendar_day?employee=EMP-00026&day=2026-07-02
+
+	Shows every Leaves Assigment record covering that date INCLUDING drafts
+	(only docstatus 1 counts), the day's punches, and what the report computed.
+	"""
+	att_date = getdate(day)
+	employee_name = frappe.db.get_value("Employee", employee, "employee_name")
+
+	leave_records = frappe.get_all(
+		"Leaves Assigment",
+		filters={
+			"employee": employee,
+			"from_date": ("<=", att_date),
+			"to_date": (">=", att_date),
+		},
+		fields=["name", "leave_type", "docstatus", "from_date", "to_date"],
+	)
+
+	checkins = frappe.db.sql(
+		"""
+		select time from `tabEmployee Checkin`
+		where employee = %s and date(time) = %s
+		order by time
+		""",
+		(employee, att_date),
+		as_dict=1,
+	)
+
+	r = get_personal_attendance_for_date(
+		employee, employee_name, att_date, worked_on_holiday=True, worked_on_leave=True
+	)
+
+	return {
+		"leave_records_covering_date": leave_records,
+		"note": "Only records with docstatus = 1 (submitted) are treated as leave.",
+		"punches": [str(c["time"]) for c in checkins],
+		"computed": {
+			"status": r.get("status"),
+			"holiday": r.get("holiday"),
+			"leave_worked": r.get("leave_worked"),
+			"am_in": r.get("am_in"), "am_out": r.get("am_out"),
+			"pm_in": r.get("pm_in"), "pm_out": r.get("pm_out"),
+			"expected_hours": r.get("expected_hours"),
+			"worked_hours": r.get("worked_hours"),
+		},
 	}
 
 
@@ -813,8 +897,44 @@ def _late_in_seconds(row):
 	if not slots or first_in is None:
 		return 0
 
-	late = (first_in - slots[0]["time_in"]).total_seconds()
+	start = row.get("_first_slot_start")
+	if start is None:
+		start = slots[0]["time_in"]
+
+	late = (first_in - start).total_seconds()
 	return int(late) if late > 0 else 0
+
+
+def _early_in_seconds(row):
+	"""
+	Seconds the first check-in was BEFORE the shift's configured start time.
+	0 if on time/late or if there is no first check-in / no configured shift.
+	"""
+	slots = row.get("_slots") or []
+	first_in = row.get("_first_in")
+	if not slots or first_in is None:
+		return 0
+
+	start = row.get("_first_slot_start")
+	if start is None:
+		start = slots[0]["time_in"]
+
+	early = (start - first_in).total_seconds()
+	return int(early) if early > 0 else 0
+
+
+def _mandatory_display(hours):
+	"""
+	Mandatory hours as a clean whole number for the calendar: 8 (full day),
+	4 (one shift) or "" (nothing expected: holiday / leave).
+
+	Rounds the computed decimal to the nearest whole hour, so 7.98 -> 8 and
+	4.02 -> 4, and returns "" for zero/None. Only affects what is displayed
+	and totalled; Less hours / Overtime still use the exact seconds.
+	"""
+	if not hours:
+		return ""
+	return int(hours + 0.5) or ""
 
 
 def _less_hours(mandatory_hours, actual_hours):
@@ -835,16 +955,21 @@ def calendar_totals(rows):
 	with a missing check-out still counts as worked — it shows up in
 	`less_hours` rather than being dropped from the day count.
 
-	Actual hours, Late-in, Less hours, and Overtime are all accumulated from
-	their raw `_actual_seconds` / `_late_seconds` / `_less_seconds` /
-	`_overtime_seconds` values on each row, since the displayed values are
-	duration strings like "7h 30m" and can't be summed directly. They are
-	formatted once at the end. `mandatory_hours` stays a plain decimal total,
-	unchanged.
+	Days worked on a holiday are counted separately in `holiday_worked_days`
+	(with their hours in `holiday_worked_hours`) and are NOT also counted in
+	`worked_days`.
+
+	Actual hours, Early-in, Late-in, Less hours, and Overtime are all
+	accumulated from their raw `_actual_seconds` / `_early_seconds` /
+	`_late_seconds` / `_less_seconds` / `_overtime_seconds` values on each row,
+	since the displayed values are duration strings like "7h 30m" and can't be
+	summed directly. They are formatted once at the end. `mandatory_hours`
+	stays a plain decimal total.
 	"""
 	totals = {
 		"mandatory_hours": 0.0,
 		"actual_hours": 0,
+		"early_in_minutes": 0,
 		"late_in_minutes": 0,
 		"less_hours": 0,
 		"overtime": 0,
@@ -852,11 +977,16 @@ def calendar_totals(rows):
 		"absent_days": 0,
 		"leave_days": 0,
 		"holiday_days": 0,
+		"holiday_worked_days": 0,
+		"holiday_worked_hours": 0,
+		"leave_worked_days": 0,
+		"leave_worked_hours": 0,
 	}
 
 	for r in rows:
 		totals["mandatory_hours"] += r.get("mandatory_hours") or 0
 		totals["actual_hours"] += r.get("_actual_seconds") or 0
+		totals["early_in_minutes"] += r.get("_early_seconds") or 0
 		totals["late_in_minutes"] += r.get("_late_seconds") or 0
 		totals["less_hours"] += r.get("_less_seconds") or 0
 		totals["overtime"] += r.get("_overtime_seconds") or 0
@@ -868,14 +998,19 @@ def calendar_totals(rows):
 			totals["leave_days"] += 1
 		elif day_type == "holiday":
 			totals["holiday_days"] += 1
+		elif day_type == "holiday_worked":
+			totals["holiday_worked_days"] += 1
+			totals["holiday_worked_hours"] += r.get("_actual_seconds") or 0
+		elif day_type == "leave_worked":
+			totals["leave_worked_days"] += 1
+			totals["leave_worked_hours"] += r.get("_actual_seconds") or 0
 		elif r.get("am_in") or r.get("am_out") or r.get("pm_in") or r.get("pm_out"):
 			totals["worked_days"] += 1
 
-	totals["mandatory_hours"] = round(totals["mandatory_hours"], 2)
-	totals["actual_hours"] = format_hours(totals["actual_hours"])
-	totals["late_in_minutes"] = format_hours(totals["late_in_minutes"])
-	totals["less_hours"] = format_hours(totals["less_hours"])
-	totals["overtime"] = format_hours(totals["overtime"])
+	totals["mandatory_hours"] = int(round(totals["mandatory_hours"]))
+	for key in ("actual_hours", "early_in_minutes", "late_in_minutes",
+				"less_hours", "overtime", "holiday_worked_hours", "leave_worked_hours"):
+		totals[key] = format_hours(totals[key])
 
 	return totals
 
@@ -884,9 +1019,13 @@ def get_calendar_rows(employee, from_date, to_date):
 	"""One row per calendar day for a single employee, with the fields
 	needed by the monthly calendar sheet.
 
-	Note: `actual_hours`, `less_hours`, and `overtime` are formatted duration
-	strings (e.g. "7h 30m"), same convention as `late_in_minutes`.
-	`mandatory_hours` stays a plain decimal (e.g. 8.0), unchanged.
+	Note: `actual_hours`, `early_in_minutes`, `late_in_minutes`, `less_hours`,
+	and `overtime` are formatted duration strings (e.g. "7h 30m").
+	`mandatory_hours` stays a plain decimal (e.g. 8.0).
+
+	A holiday with punches is flagged `holiday_worked` (day_type
+	"holiday_worked"): mandatory hours are zero, so all hours worked count as
+	overtime, and early/late-in are not calculated.
 	"""
 	from_date = getdate(from_date)
 	to_date = getdate(to_date)
@@ -895,22 +1034,39 @@ def get_calendar_rows(employee, from_date, to_date):
 	rows = []
 	current = from_date
 	while current <= to_date:
-		day_row = get_personal_attendance_for_date(employee, employee_name, current)
+		# worked_on_holiday / worked_on_leave=True so punches on a holiday or
+		# a leave day are detected
+		day_row = get_personal_attendance_for_date(
+			employee, employee_name, current,
+			worked_on_holiday=True, worked_on_leave=True
+		)
 
-		mandatory_hours = day_row.get("expected_hours") or 0  # unchanged: decimal hours
-		late_seconds = _late_in_seconds(day_row)
+		leave_worked = bool(day_row.get("leave_worked"))
+		holiday_worked = (
+			day_row.get("holiday") == "Holiday" and day_row.get("status") == "Present"
+		)
+
+		mandatory_hours = _mandatory_display(day_row.get("expected_hours"))  # 8 / 4 / ""
+
+		# Early/late make no sense on a holiday (no shift expected). On a leave
+		# day they are measured against the first shift actually attended.
+		late_seconds = 0 if holiday_worked else _late_in_seconds(day_row)
+		early_seconds = 0 if holiday_worked else _early_in_seconds(day_row)
 
 		# Raw seconds (already computed upstream in get_personal_attendance_for_date)
-		# rather than the rounded decimal hours, so Actual/Less/Overtime can be
-		# formatted as durations the same way Late-in already is.
+		# so Actual/Less/Overtime can be formatted as durations.
 		actual_seconds = day_row.get("_worked_seconds") or 0
 		mandatory_seconds = day_row.get("_expected_seconds") or 0
 		less_seconds = max(mandatory_seconds - actual_seconds, 0)
 		overtime_seconds = max(actual_seconds - mandatory_seconds, 0)
 
 		code = ""
-		day_type = ""  # "" | "absent" | "leave" | "holiday" -- for downstream styling
-		if day_row["status"] == "Absent":
+		day_type = ""  # "" | "absent" | "leave" | "holiday" | "holiday_worked" | "leave_worked"
+		if leave_worked:
+			day_type = "leave_worked"
+		elif holiday_worked:
+			day_type = "holiday_worked"
+		elif day_row["status"] == "Absent":
 			code = "A"
 			day_type = "absent"
 		elif day_row["status"] == "On Leave":
@@ -929,16 +1085,20 @@ def get_calendar_rows(employee, from_date, to_date):
 			"mandatory_hours": mandatory_hours,
 			# displayed as durations, e.g. "7h 30m"
 			"actual_hours": format_hours(actual_seconds),
+			"early_in_minutes": format_hours(early_seconds),
 			"late_in_minutes": format_hours(late_seconds),
 			"less_hours": format_hours(less_seconds),
 			"overtime": format_hours(overtime_seconds),
 			# raw values kept so calendar_totals() can sum them
+			"_early_seconds": early_seconds,
 			"_late_seconds": late_seconds,
 			"_actual_seconds": actual_seconds,
 			"_less_seconds": less_seconds,
 			"_overtime_seconds": overtime_seconds,
 			"code": code,
 			"day_type": day_type,
+			"holiday_worked": holiday_worked,
+			"leave_worked": leave_worked,
 		})
 		current = add_days(current, 1)
 
@@ -959,19 +1119,22 @@ def get_personal_attendance_calendar(employee, from_date, to_date):
 	      {"date": "2026-07-01", "date_label": "1-Jul",
 	       "am_in": "08:40", "am_out": "11:20",
 	       "pm_in": "15:50", "pm_out": "20:45", "mandatory_hours": 8.0,
-	       "actual_hours": "8h", "late_in_minutes": "40m", "less_hours": "",
-	       "overtime": "1h", "code": ""},
+	       "actual_hours": "8h", "early_in_minutes": "", "late_in_minutes": "40m",
+	       "less_hours": "", "overtime": "1h", "code": "",
+	       "day_type": "", "holiday_worked": false},
 	      ...
 	    ],
 	    "totals": {"mandatory_hours": 176.0, "actual_hours": "168h 30m",
-	               "late_in_minutes": "1h 3m", "less_hours": "7h 30m", "overtime": "12h 18m",
+	               "early_in_minutes": "2h 5m", "late_in_minutes": "1h 3m",
+	               "less_hours": "7h 30m", "overtime": "12h 18m",
 	               "worked_days": 22, "absent_days": 1,
-	               "leave_days": 0, "holiday_days": 5}
+	               "leave_days": 0, "holiday_days": 5,
+	               "holiday_worked_days": 1, "holiday_worked_hours": "6h"}
 	  }
 
-	Note: `actual_hours`, `late_in_minutes`, `less_hours`, and `overtime`
-	are all formatted duration strings, not numbers. `mandatory_hours`
-	stays a plain decimal.
+	Note: `actual_hours`, `early_in_minutes`, `late_in_minutes`, `less_hours`,
+	and `overtime` are formatted duration strings, not numbers.
+	`mandatory_hours` stays a plain decimal.
 	"""
 	employee_doc = frappe.get_cached_doc("Employee", employee)
 	rows, employee_name = get_calendar_rows(employee, from_date, to_date)
@@ -1018,7 +1181,7 @@ def download_monthly_calendar(employee, from_date, to_date):
 	ws = wb.active
 	ws.title = "Monthly Attendance"
 
-	N_COLS = 10  # A..J
+	N_COLS = 11  # A..K
 	purple_fill = PatternFill(start_color="7A5EA7", end_color="7A5EA7", fill_type="solid")
 	total_fill = PatternFill(start_color="EDE7F4", end_color="EDE7F4", fill_type="solid")
 	header_font = Font(bold=True, color="FFFFFF")
@@ -1057,24 +1220,36 @@ def download_monthly_calendar(employee, from_date, to_date):
 	merge_and_set(2, 1, 2, "Employee ID", fill=purple_fill, font=header_font)
 	merge_and_set(2, 3, 3, employee, align=left)
 	merge_and_set(2, 6, 7, "Employee Name", fill=purple_fill, font=header_font)
-	merge_and_set(2, 8, 10, employee_name, align=left)
+	merge_and_set(2, 8, 11, employee_name, align=left)
 
 	merge_and_set(3, 1, 2, "Job title", fill=purple_fill, font=header_font)
 	merge_and_set(3, 3, 3, employee_doc.designation or "", align=left)
 	merge_and_set(3, 6, 7, "Department", fill=purple_fill, font=header_font)
-	merge_and_set(3, 8, 10, employee_doc.department or "", align=left)
+	merge_and_set(3, 8, 11, employee_doc.department or "", align=left)
 
 	# --- Column headers ----------------------------------------------------------
 	header_row = 5
 	headers = ["Date", "In", "Out", "In", "Out", "Mandatory\nHours",
-			   "Actual hours\nworked", "Late-in", "Less Hours\nworked", "Overtime"]
+			   "Actual hours\nworked", "Early-in", "Late-in",
+			   "Less Hours\nworked", "Overtime"]
 	for i, label in enumerate(headers, start=1):
 		merge_and_set(header_row, i, i, label, fill=purple_fill, font=header_font)
 
 	# --- Day rows ------------------------------------------------------------------
 	r = header_row + 1
 	for day in rows:
-		ws.cell(row=r, column=1, value=day["date"].strftime("%-d-%b") if hasattr(day["date"], "strftime") else str(day["date"]))
+		date_text = day["date"].strftime("%-d-%b") if hasattr(day["date"], "strftime") else str(day["date"])
+		if day.get("holiday_worked"):
+			date_text += " (H)"
+		elif day.get("leave_worked"):
+			date_text += " (LV)"
+		date_cell = ws.cell(row=r, column=1, value=date_text)
+		if day.get("holiday_worked"):
+			date_cell.fill = PatternFill(start_color="FFF4CE", end_color="FFF4CE", fill_type="solid")
+			date_cell.font = Font(bold=True, color="B45309")
+		elif day.get("leave_worked"):
+			date_cell.fill = PatternFill(start_color="DCE6F1", end_color="DCE6F1", fill_type="solid")
+			date_cell.font = Font(bold=True, color="2563EB")
 
 		if day["code"]:
 			style = DAY_TYPE_STYLE.get(day.get("day_type"))
@@ -1089,13 +1264,15 @@ def download_monthly_calendar(employee, from_date, to_date):
 
 		ws.cell(row=r, column=6, value=day["mandatory_hours"] or None)
 		ws.cell(row=r, column=7, value=day["actual_hours"] or None)
-		ws.cell(row=r, column=8, value=day["late_in_minutes"] or None)
-		ws.cell(row=r, column=9, value=day["less_hours"] or None)
-		ws.cell(row=r, column=10, value=day["overtime"] or None)
+		ws.cell(row=r, column=8, value=day["early_in_minutes"] or None)
+		ws.cell(row=r, column=9, value=day["late_in_minutes"] or None)
+		ws.cell(row=r, column=10, value=day["less_hours"] or None)
+		ws.cell(row=r, column=11, value=day["overtime"] or None)
 
 		for c in range(1, N_COLS + 1):
 			cell = ws.cell(row=r, column=c)
 			cell.border = box_border
+			# keep the amber holiday-worked styling on the date cell
 			cell.alignment = center
 		r += 1
 
@@ -1105,9 +1282,10 @@ def download_monthly_calendar(employee, from_date, to_date):
 	for col, key in (
 		(6, "mandatory_hours"),
 		(7, "actual_hours"),
-		(8, "late_in_minutes"),
-		(9, "less_hours"),
-		(10, "overtime"),
+		(8, "early_in_minutes"),
+		(9, "late_in_minutes"),
+		(10, "less_hours"),
+		(11, "overtime"),
 	):
 		cell = ws.cell(row=totals_row, column=col, value=totals[key] or None)
 		cell.fill = total_fill
@@ -1122,7 +1300,9 @@ def download_monthly_calendar(employee, from_date, to_date):
 		f"Worked days: {totals['worked_days']}    "
 		f"Absent: {totals['absent_days']}    "
 		f"Leave: {totals['leave_days']}    "
-		f"Holiday: {totals['holiday_days']}"
+		f"Holiday: {totals['holiday_days']}    "
+		f"Worked on holiday: {totals['holiday_worked_days']} ({totals['holiday_worked_hours'] or '0h'})    "
+		f"Worked on leave: {totals['leave_worked_days']} ({totals['leave_worked_hours'] or '0h'})"
 	)
 	merge_and_set(summary_row, 1, N_COLS, summary, font=bold_font, align=left, border=False)
 	r = summary_row + 1
@@ -1132,7 +1312,7 @@ def download_monthly_calendar(employee, from_date, to_date):
 	sig_row = r
 	merge_and_set(sig_row, 1, 3, "Employee signature", border=False, align=Alignment(horizontal="center"))
 	merge_and_set(sig_row, 4, 7, "Manager/Supervisor signature", border=False, align=Alignment(horizontal="center"))
-	merge_and_set(sig_row, 8, 10, "HR Manager Signature", border=False, align=Alignment(horizontal="center"))
+	merge_and_set(sig_row, 8, 11, "HR Manager Signature", border=False, align=Alignment(horizontal="center"))
 	for c in range(1, N_COLS + 1):
 		ws.cell(row=sig_row - 1, column=c).border = Border(bottom=thin)
 
@@ -1144,12 +1324,14 @@ def download_monthly_calendar(employee, from_date, to_date):
 		(5, 6, "C - Compassionate leave"),
 		(7, 8, "P/M - Maternity"),
 		(9, 10, "UA - Unjustified Absence"),
+		(11, 11, "(H) - Worked on holiday"),
 	]
 	for start, end, label in legend_items:
 		merge_and_set(legend_row, start, end, label, border=False, align=left)
+	merge_and_set(legend_row + 1, 1, 5, "(LV) - On leave, attended a shift", border=False, align=left)
 
 	# --- Column widths -------------------------------------------------------------
-	widths = [10, 8, 8, 8, 8, 11, 13, 10, 11, 10]
+	widths = [12, 8, 8, 8, 8, 11, 13, 10, 10, 11, 10]
 	for i, w in enumerate(widths, start=1):
 		ws.column_dimensions[get_column_letter(i)].width = w
 

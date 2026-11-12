@@ -11,9 +11,13 @@
   "employee",
   "employee_name",
   "employee_id",
-  "leave_type",
+  "type",
   "from_date",
   "to_date",
+  "from_time",
+  "to_time",
+  "column_break_aqn0y",
+  "leave_type",
   "reason",
   "amended_from",
   "suppervisor",
@@ -37,7 +41,8 @@
    "allow_on_submit": 1,
    "fieldname": "to_date",
    "fieldtype": "Date",
-   "label": "To Date"
+   "label": "To Date",
+   "reqd": 1
   },
   {
    "fieldname": "leave_type",
@@ -45,7 +50,8 @@
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Leave Type",
-   "options": "Leave Type"
+   "options": "Leave Type",
+   "reqd": 1
   },
   {
    "fieldname": "reason",
@@ -98,12 +104,38 @@
    "fieldtype": "Link",
    "label": "Notication",
    "options": "Nofication"
+  },
+  {
+   "fieldname": "column_break_aqn0y",
+   "fieldtype": "Column Break"
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "type",
+   "fieldtype": "Select",
+   "label": "Type",
+   "options": "Full Day\nHalf Day",
+   "reqd": 1
+  },
+  {
+   "depends_on": "eval:doc.type ==\"Half Day\"",
+   "fieldname": "from_time",
+   "fieldtype": "Time",
+   "label": "From Time",
+   "mandatory_depends_on": "eval:doc.type ==\"Half Day\""
+  },
+  {
+   "depends_on": "eval:doc.type ==\"Half Day\"",
+   "fieldname": "to_time",
+   "fieldtype": "Time",
+   "label": "To Time",
+   "mandatory_depends_on": "eval:doc.type ==\"Half Day\""
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-11-11 10:19:11.608666",
+ "modified": "2026-10-21 11:29:06.372869",
  "modified_by": "Administrator",
  "module": "Rasiin Hr",
  "name": "Leaves Assigment",
